@@ -43,6 +43,10 @@
         /* Ошибки */
         .messages { list-style: none; padding: 0; margin: 0 0 15px 0; }
         .messages li.error { background: #e74c3c; padding: 10px; border-radius: 5px; }
+        
+        /* Группа кода комнаты */
+        #room-code-group { display: none; margin-top: 15px; }
+        #room-code-group input { margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -79,9 +83,9 @@
                 <button type="button" id="btn-join">Присоединиться</button>
             </div>
             
-            <div class="input-group" id="room-code-group" style="display: none; margin-top: 15px;">
+            <div class="input-group" id="room-code-group">
                 <input type="text" name="room_code" placeholder="Код комнаты (e.g. ABC12)">
-                <button type="submit" name="action" value="join" style="margin-top: 10px;">Войти в комнату</button>
+                <button type="submit" name="action" value="join" style="width: 100%;">Войти в комнату</button>
             </div>
         </form>
     </div>

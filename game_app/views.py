@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.http import JsonResponse
 from .models import GameSession, Player, GameCoordinate
 import random
 import string
@@ -55,13 +56,7 @@ def create_game(request):
     # Создаем игру
     game = GameSession.objects.create(host_session=session_id)
     
-    # Создаем игрока (ведущего)
-    Player.objects.create(
-        session_id=session_id,
-        game=game, 
-        nickname=nickname, 
-        avatar_id=avatar_id
-    )
+    # ВЕДУЩИЙ НЕ СОЗДАЕТСЯ КАК ИГРОК - только как хост сессии
 
     return redirect('game_lobby', room_code=game.room_code)
 
@@ -78,6 +73,11 @@ def join_game(request):
     try:
         game = GameSession.objects.get(room_code=room_code)
         
+        # Проверяем, не является ли пользователь ведущим этой игры
+        if session_id == game.host_session:
+            messages.error(request, "Вы уже являетесь ведущим этой игры!")
+            return redirect('index')
+        
         if game.players.count() >= 7:
             messages.error(request, "Комната переполнена!")
             return redirect('index')
@@ -86,11 +86,18 @@ def join_game(request):
             messages.error(request, "Игра уже началась!")
             return redirect('index')
 
-        # Создаем игрока
+        # Создаем игрока (только для обычных игроков, не для ведущего)
         Player.objects.get_or_create(
             session_id=session_id,
             game=game,
             defaults={'nickname': nickname, 'avatar_id': avatar_id}
+        )
+        
+        # Уведомляем через WebSocket об обновлении списка игроков
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'game_{game.room_code}',
+            {'type': 'player_list_update'}
         )
 
         return redirect('game_lobby', room_code=game.room_code)
@@ -102,20 +109,58 @@ def join_game(request):
 def game_lobby(request, room_code):
     session_id = request.session.get('session_id')
     game = get_object_or_404(GameSession, room_code=room_code)
-    players = game.players.all()
+    players = game.players.all()  # Только обычные игроки, без ведущего
     
     is_host = (session_id == game.host_session)
     current_player = players.filter(session_id=session_id).first()
     
-    if not current_player and not is_host:
+    # Если пользователь не ведущий и не игрок, отправляем на главную
+    if not is_host and not current_player:
         messages.error(request, "Вы не состоите в этой игре.")
         return redirect('index')
+    
+    # Обработка изменения данных в лобби
+    if request.method == "POST":
+        action = request.POST.get('action')
+        
+        if action == 'update_profile':
+            new_nickname = request.POST.get('nickname')
+            new_avatar_id = request.POST.get('avatar_id')
+            
+            if new_nickname and new_avatar_id:
+                # Обновляем данные в сессии
+                request.session['nickname'] = new_nickname
+                request.session['avatar_id'] = new_avatar_id
+                
+                # Если это игрок (не ведущий), обновляем данные в базе
+                if current_player:
+                    current_player.nickname = new_nickname
+                    current_player.avatar_id = new_avatar_id
+                    current_player.save()
+                    
+                    # Уведомляем всех об обновлении списка игроков
+                    channel_layer = get_channel_layer()
+                    async_to_sync(channel_layer.group_send)(
+                        f'game_{game.room_code}',
+                        {'type': 'player_list_update'}
+                    )
+                
+                messages.success(request, "Данные успешно обновлены!")
+                return redirect('game_lobby', room_code=room_code)
+        
+        elif action == 'delete_room' and is_host:
+            # Удаляем комнату (игру)
+            game.delete()
+            messages.success(request, "Комната успешно удалена!")
+            return redirect('index')
 
     context = {
         'game': game,
         'players': players,
         'is_host': is_host,
         'player_count': players.count(),
+        'current_nickname': request.session.get('nickname', ''),
+        'current_avatar_id': request.session.get('avatar_id', '1'),
     }
     return render(request, 'game_app/lobby.html', context)
 

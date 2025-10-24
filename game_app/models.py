@@ -1,6 +1,8 @@
 from django.db import models
 import random
 import string
+from django.utils import timezone
+import datetime
 
 class GameSession(models.Model):
     STAGE_CHOICES = [
@@ -12,14 +14,21 @@ class GameSession(models.Model):
         ('game_over', 'Игра окончена'),
     ]
     
+    GAME_OVER_STATUS = [
+        ('playing', 'В игре'),
+        ('aliens_win', 'Пришельцы победили'),
+        ('humans_win', 'Люди победили'),
+    ]
+
     room_code = models.CharField(max_length=10, unique=True, blank=True)
     host_session = models.CharField(max_length=100)
     current_stage = models.CharField(max_length=20, choices=STAGE_CHOICES, default='lobby')
     created_at = models.DateTimeField(auto_now_add=True)
+    last_activity = models.DateTimeField(auto_now=True)
     
     human_coords_to_win = models.IntegerField(default=0)
     visited_human_coords_count = models.IntegerField(default=0)
-    game_over_status = models.CharField(max_length=20, default='playing')
+    game_over_status = models.CharField(max_length=20, choices=GAME_OVER_STATUS, default='playing')
 
     def save(self, *args, **kwargs):
         if not self.room_code:
@@ -42,6 +51,7 @@ class Player(models.Model):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, blank=True, null=True)
     is_alive = models.BooleanField(default=True)
     has_voted = models.BooleanField(default=False)
+    last_activity = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('session_id', 'game')
