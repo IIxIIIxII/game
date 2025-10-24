@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 import datetime
-from game.models import GameSession, PlayerInGame
+from game_app.models import GameSession, PlayerInGame
 
 class Command(BaseCommand):
     help = 'Удаляет просроченные игры и игроков'

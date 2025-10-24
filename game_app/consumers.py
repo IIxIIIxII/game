@@ -2,7 +2,7 @@ import json
 import random
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
-from .models import GameSession, PlayerInGame, GameCoordinate
+from .models import GameSession, Player, GameCoordinate
 from django.urls import reverse
 
 class GameConsumer(WebsocketConsumer):
@@ -10,9 +10,13 @@ class GameConsumer(WebsocketConsumer):
     def connect(self):
         self.room_code = self.scope['url_route']['kwargs']['room_code']
         self.room_group_name = f'game_{self.room_code}'
-        self.user = self.scope['user']
+        
+        # Получаем сессию
+        session = self.scope['session']
+        self.session_id = session.get('session_id')
+        self.nickname = session.get('nickname', 'Игрок')
 
-        if not self.user.is_authenticated:
+        if not self.session_id:
             self.close()
             return
 
@@ -23,11 +27,12 @@ class GameConsumer(WebsocketConsumer):
 
         self.accept()
         
+        # Уведомляем о подключении
         async_to_sync(self.channel_layer.group_send)(
             self.room_group_name,
             {
                 'type': 'chat_message',
-                'message': f'{self.user.username} присоединился к комнате.',
+                'message': f'{self.nickname} присоединился к комнате.',
                 'username': 'Система'
             }
         )
@@ -37,31 +42,12 @@ class GameConsumer(WebsocketConsumer):
         if not game:
             return
 
-        if self.user == game.host:
-            if game.current_stage == 'lobby':
-                async_to_sync(self.channel_layer.group_send)(
-                    self.room_group_name,
-                    {'type': 'game_aborted'}
-                )
-                game.delete()
-            else:
-                print(f"Host {self.user.username} disconnected from ACTIVE game. Not deleting.")
-        else:
-            player = PlayerInGame.objects.filter(user=self.user, game=game).first()
-            if game.current_stage == 'lobby' and player:
-                player.delete()
-                async_to_sync(self.channel_layer.group_send)(
-                    self.room_group_name,
-                    {'type': 'player_list_update'}
-                )
-            else:
-                print(f"Player {self.user.username} disconnected from ACTIVE game.")
-
+        # Уведомляем о отключении
         async_to_sync(self.channel_layer.group_send)(
             self.room_group_name,
             {
                 'type': 'chat_message',
-                'message': f'{self.user.username} покинул комнату.',
+                'message': f'{self.nickname} покинул комнату.',
                 'username': 'Система'
             }
         )
@@ -77,7 +63,6 @@ class GameConsumer(WebsocketConsumer):
 
         game = GameSession.objects.filter(room_code=self.room_code).first()
         if not game:
-            print(f"Game {self.room_code} not found, aborting receive.")
             return
 
         if message_type == 'chat_message':
@@ -88,50 +73,27 @@ class GameConsumer(WebsocketConsumer):
                     {
                         'type': 'chat_message',
                         'message': message,
-                        'username': self.user.username
+                        'username': self.nickname
                     }
                 )
         
-        elif self.user == game.host:
+        elif self.session_id == game.host_session:
             if message_type == 'start_game' and game.current_stage == 'lobby':
-                self.start_game_logic()
+                self.start_game_logic(game)
             
             elif message_type == 'next_stage':
                 if game.current_stage == 'roles':
-                    self.generate_coordinates_logic()
+                    self.generate_coordinates_logic(game)
                 elif game.current_stage == 'coordinates':
-                    self.start_voting_logic()
+                    self.start_voting_logic(game)
                 elif game.current_stage == 'voting':
-                    self.process_results_logic()
+                    self.process_results_logic(game)
                 elif game.current_stage == 'results':
-                    self.generate_coordinates_logic()
-
-            elif message_type == 'continue_without_player':
-                player_id = text_data_json.get('player_id')
-                try:
-                    player = PlayerInGame.objects.get(id=player_id, game=game)
-                    player.is_alive = False
-                    player.save()
-                    
-                    async_to_sync(self.channel_layer.group_send)(
-                        self.room_group_name,
-                        {
-                            'type': 'chat_message',
-                            'message': f'Игра продолжается без игрока {player.nickname}',
-                            'username': 'Система'
-                        }
-                    )
-                    
-                    async_to_sync(self.channel_layer.group_send)(
-                        self.room_group_name,
-                        {'type': 'update_game_stage'}
-                    )
-                except PlayerInGame.DoesNotExist:
-                    pass
+                    self.generate_coordinates_logic(game)
 
         elif message_type == 'submit_vote' and game.current_stage == 'voting':
             try:
-                player = PlayerInGame.objects.get(user=self.user, game=game)
+                player = Player.objects.get(session_id=self.session_id, game=game)
                 if player.has_voted:
                     return
                 
@@ -148,11 +110,10 @@ class GameConsumer(WebsocketConsumer):
                     self.room_group_name,
                     {'type': 'update_game_stage'}
                 )
-            except (PlayerInGame.DoesNotExist, GameCoordinate.DoesNotExist):
-                print(f"Error processing vote from {self.user.username}")
+            except (Player.DoesNotExist, GameCoordinate.DoesNotExist):
+                pass
 
-    def start_game_logic(self):
-        game = GameSession.objects.get(room_code=self.room_code)
+    def start_game_logic(self, game):
         players = list(game.players.all())
         player_count = len(players)
 
@@ -183,8 +144,7 @@ class GameConsumer(WebsocketConsumer):
             }
         )
 
-    def generate_coordinates_logic(self):
-        game = GameSession.objects.get(room_code=self.room_code)
+    def generate_coordinates_logic(self, game):
         players = list(game.players.all())
         
         COORD_NAMES = [
@@ -203,14 +163,16 @@ class GameConsumer(WebsocketConsumer):
         
         GameCoordinate.objects.filter(game=game).delete()
 
-        for i, player in enumerate(players):
+        for player in players:
             is_alien = (player.role == 'alien')
+            coord_name = COORD_NAMES.pop() if COORD_NAMES else f"Сектор {random.randint(100, 999)}"
+            resource_desc = ALIEN_MESSAGE if is_alien else (HUMAN_RESOURCES.pop() if HUMAN_RESOURCES else "Ценные ресурсы")
             
             GameCoordinate.objects.create(
                 game=game,
                 player=player,
-                coordinate_name=COORD_NAMES.pop(), 
-                resource_description=ALIEN_MESSAGE if is_alien else HUMAN_RESOURCES.pop(),
+                coordinate_name=coord_name,
+                resource_description=resource_desc,
                 is_alien_coord=is_alien
             )
             
@@ -224,9 +186,7 @@ class GameConsumer(WebsocketConsumer):
             }
         )
 
-    def start_voting_logic(self):
-        game = GameSession.objects.get(room_code=self.room_code)
-        
+    def start_voting_logic(self, game):
         game.current_stage = 'voting'
         game.save()
         
@@ -240,9 +200,7 @@ class GameConsumer(WebsocketConsumer):
             }
         )
     
-    def process_results_logic(self):
-        game = GameSession.objects.get(room_code=self.room_code)
-        
+    def process_results_logic(self, game):
         game.coordinates.all().update(was_visited=False)
         winner_coord = game.coordinates.order_by('-votes').first()
         
@@ -309,17 +267,11 @@ class GameConsumer(WebsocketConsumer):
             players_data.append({
                 'nickname': p.nickname,
                 'avatar_id': p.avatar_id,
-                'is_host': p.user == game.host
+                'is_host': p.session_id == game.host_session
             })
 
         self.send(text_data=json.dumps({
             'type': 'player_list_update',
             'players': players_data,
             'player_count': player_count
-        }))
-
-    def game_aborted(self, event):
-        self.send(text_data=json.dumps({
-            'type': 'game_aborted',
-            'message': 'Ведущий покинул игру. Игра отменена.'
         }))

@@ -1,5 +1,5 @@
 from django.apps import AppConfig
 
-class GameConfig(AppConfig):
+class GameAppConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'game'
+    name = 'game_app'

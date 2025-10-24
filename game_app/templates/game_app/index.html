@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Космическая Игра</title>
+    <style>
+        body { font-family: sans-serif; display: grid; place-items: center; min-height: 100vh; background: #1a1a2e; color: #e0e0e0; }
+        .main-container { background: #1f1f3d; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); text-align: center; width: 400px; }
+        h1 { margin-top: 0; color: #a942e0; }
+        
+        /* Выбор аватара */
+        .avatar-picker { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 20px 0; }
+        .avatar { width: 60px; height: 60px; border-radius: 50%; border: 3px solid #555; cursor: pointer; transition: all 0.2s; background: #444; }
+        .avatar.selected { border-color: #a942e0; box-shadow: 0 0 10px #a942e0; transform: scale(1.1); }
+        /* 10 цветов для аватарок */
+        .avatar[data-id="1"] { background-color: #e74c3c; }
+        .avatar[data-id="2"] { background-color: #3498db; }
+        .avatar[data-id="3"] { background-color: #2ecc71; }
+        .avatar[data-id="4"] { background-color: #f1c40f; }
+        .avatar[data-id="5"] { background-color: #9b59b6; }
+        .avatar[data-id="6"] { background-color: #1abc9c; }
+        .avatar[data-id="7"] { background-color: #e67e22; }
+        .avatar[data-id="8"] { background-color: #ecf0f1; }
+        .avatar[data-id="9"] { background-color: #7f8c8d; }
+        .avatar[data-id="10"] { background-color: #34495e; }
+
+        /* Поля ввода */
+        .input-group { margin-bottom: 15px; }
+        input[type="text"] { width: 100%; padding: 10px; box-sizing: border-box; background: #2f2f4d; border: 1px solid #555; color: white; border-radius: 5px; }
+        
+        /* Кнопки */
+        .button-group { display: flex; gap: 10px; }
+        button { flex: 1; padding: 12px; background: #a942e0; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background 0.2s; }
+        button:hover { background: #c065f0; }
+
+        /* Правила */
+        .rules-trigger { position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; background: #a942e0; color: white; border-radius: 50%; display: grid; place-items: center; font-size: 24px; cursor: pointer; box-shadow: 0 0 10px #a942e0; user-select: none; }
+        .rules-popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1f1f3d; padding: 20px; border: 2px solid #a942e0; border-radius: 10px; z-index: 100; max-width: 500px; box-shadow: 0 0 20px rgba(0,0,0,0.7); }
+        .rules-popup.show { display: block; }
+        .rules-popup h2 { text-align: center; }
+
+        /* Ошибки */
+        .messages { list-style: none; padding: 0; margin: 0 0 15px 0; }
+        .messages li.error { background: #e74c3c; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    
+    <div class="main-container">
+        <h1>Космический Корабль</h1>
+        
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <form method="post" id="game-form">
+            {% csrf_token %}
+            
+            <div class="avatar-picker">
+                {% for i in "1234567890"|make_list %}
+                <div class="avatar {% if current_avatar_id == i %}selected{% endif %}" data-id="{{ i }}"></div>
+                {% endfor %}
+            </div>
+            <input type="hidden" name="avatar_id" id="avatar_id" value="{{ current_avatar_id }}" required>
+
+            <div class="input-group">
+                <input type="text" name="nickname" placeholder="Введите ваш ник" value="{{ current_nickname }}" required>
+            </div>
+
+            <hr style="border-color: #444; margin: 20px 0;">
+
+            <div class="button-group">
+                <button type="submit" name="action" value="create">Создать комнату</button>
+                <button type="button" id="btn-join">Присоединиться</button>
+            </div>
+            
+            <div class="input-group" id="room-code-group" style="display: none; margin-top: 15px;">
+                <input type="text" name="room_code" placeholder="Код комнаты (e.g. ABC12)">
+                <button type="submit" name="action" value="join" style="margin-top: 10px;">Войти в комнату</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="rules-trigger" id="rules-btn">?</div>
+    <div class="rules-popup" id="rules-content">
+        <span id="rules-close" style="float: right; cursor: pointer; font-size: 20px;">&times;</span>
+        <h2>Правила Игры</h2>
+        <ul>
+            <li>В игре участвуют от 3 до 7 игроков. Один из вас - Ведущий.</li>
+            <li>Игроки делятся на Людей и Пришельцев.</li>
+            <li>Цель Людей: посетить N-1 безопасную координату.</li>
+            <li>Цель Пришельцев: заманить Людей на свою координату хотя бы 1 раз.</li>
+            <li>Каждый раунд вы голосуете, на чью координату полететь.</li>
+        </ul>
+    </div>
+
+    <script>
+        // Логика выбора аватара
+        const avatarPicker = document.querySelector('.avatar-picker');
+        const hiddenInput = document.querySelector('#avatar_id');
+        
+        avatarPicker.addEventListener('click', function(e) {
+            if (e.target.classList.contains('avatar')) {
+                avatarPicker.querySelectorAll('.avatar').forEach(a => a.classList.remove('selected'));
+                e.target.classList.add('selected');
+                hiddenInput.value = e.target.dataset.id;
+            }
+        });
+
+        // Логика показа/скрытия поля "Код комнаты"
+        const btnJoin = document.querySelector('#btn-join');
+        const roomCodeGroup = document.querySelector('#room-code-group');
+        
+        btnJoin.addEventListener('click', function(e) {
+            roomCodeGroup.style.display = 'block';
+            roomCodeGroup.querySelector('input').required = true;
+        });
+
+        // Логика правил
+        const rulesBtn = document.querySelector('#rules-btn');
+        const rulesPopup = document.querySelector('#rules-content');
+        const rulesClose = document.querySelector('#rules-close');
+
+        rulesBtn.addEventListener('click', () => rulesPopup.classList.add('show'));
+        rulesClose.addEventListener('click', () => rulesPopup.classList.remove('show'));
+    </script>
+</body>
+</html>
