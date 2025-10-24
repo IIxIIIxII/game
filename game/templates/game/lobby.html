@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Лобби {{ game.room_code }}</title>
+    <style>
+        body { font-family: sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
+        .lobby-container { max-width: 600px; margin: auto; background: #1f1f3d; padding: 20px; border-radius: 10px; }
+        h1 { color: #a942e0; border-bottom: 2px solid #a942e0; padding-bottom: 10px; }
+        h1 span { font-size: 1.2rem; background: #444; padding: 5px 10px; border-radius: 5px; }
+        
+        .player-list { list-style: none; padding: 0; }
+        .player-item { display: flex; align-items: center; background: #2f2f4d; padding: 10px; border-radius: 5px; margin-bottom: 10px; }
+        .avatar { width: 50px; height: 50px; border-radius: 50%; margin-right: 15px; border: 2px solid #555; }
+        
+        .avatar[data-id="1"] { background-color: #e74c3c; }
+        .avatar[data-id="2"] { background-color: #3498db; }
+        .avatar[data-id="3"] { background-color: #2ecc71; }
+        .avatar[data-id="4"] { background-color: #f1c40f; }
+        .avatar[data-id="5"] { background-color: #9b59b6; }
+        .avatar[data-id="6"] { background-color: #1abc9c; }
+        .avatar[data-id="7"] { background-color: #e67e22; }
+        .avatar[data-id="8"] { background-color: #ecf0f1; }
+        .avatar[data-id="9"] { background-color: #7f8c8d; }
+        .avatar[data-id="10"] { background-color: #34495e; }
+        
+        .player-name { font-size: 1.2rem; font-weight: bold; }
+        .player-role { font-style: italic; color: #a942e0; margin-left: 10px; }
+        
+        .host-controls { margin-top: 20px; text-align: center; }
+        .start-button { padding: 15px 30px; background: #2ecc71; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; }
+        .start-button:disabled { background: #555; cursor: not-allowed; }
+        
+        .player-warning { margin-top: 20px; background: #f1c40f; color: #1a1a2e; padding: 15px; border-radius: 5px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div class="lobby-container">
+        <h1>Лобби <span>{{ game.room_code }}</span></h1>
+        <p>Ведущий: <strong>{{ game.host.username }}</strong></p>
+
+        <hr style="border-color: #444;">
+
+        <h2 id="player-count-header">Игроки ({{ player_count }}/7)</h2>
+        <ul class="player-list" id="player-list-ul">
+            {% for player in players %}
+            <li class="player-item">
+                <div class="avatar" data-id="{{ player.avatar_id }}"></div>
+                <div class="player-info">
+                    <span class="player-name">{{ player.nickname }}</span>
+                    {% if player.user == game.host %}
+                        <span class="player-role">(Ведущий)</span>
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+
+        {% if is_host %}
+        <div class="host-controls" id="host-controls-div">
+            <button class="start-button" id="start-game-btn" {% if player_count < 3 %}disabled{% endif %}>
+                 Начать игру
+            </button>
+            {% if player_count < 3 %}
+           <p id="host-message">
+    {% if player_count < 3 %}
+    Нужно минимум 3 игрока для старта (у вас {{ player_count }}).
+    {% else %}
+    Готово к старту (игроков: {{ player_count }}).
+    {% endif %}
+</p>
+            {% else %}
+            <p>Готово к старту (игроков: {{ player_count }}).</p>
+            {% endif %}
+        </div>
+        
+        {% else %}
+        <div class="player-warning">
+            <h4>Внимание!</h4>
+            <p>Ожидайте, пока Ведущий ({{ game.host.username }}) начнет игру. После старта игры не показывайте свой экран другим игрокам!</p>
+        </div>
+        {% endif %}
+
+    </div>
+    
+    <script>
+        const roomCode = '{{ game.room_code }}';
+    const isHost = {{ is_host|yesno:"true,false" }};
+
+    const playerListUL = document.querySelector('#player-list-ul');
+    const playerCountHeader = document.querySelector('#player-count-header');
+    const hostControlsDiv = document.querySelector('#host-controls-div');
+    const hostMessage = document.querySelector('#host-message');
+    const startButton = hostControlsDiv ? hostControlsDiv.querySelector('.start-button') : null;
+    const startGameBtn = document.querySelector('#start-game-btn');
+
+
+    const lobbySocket = new WebSocket(
+        'ws://'
+        + window.location.host
+        + '/ws/game/'
+        + roomCode
+        + '/'
+    );
+
+    lobbySocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+
+        if (data.type === 'player_list_update') {
+            console.log('Получено обновление списка игроков:', data.players);
+
+            playerCountHeader.textContent = `Игроки (${data.player_count}/7)`;
+
+            renderPlayerList(data.players);
+
+            if (isHost && startButton) {
+                if (data.player_count < 3) {
+                    startButton.disabled = true;
+                    hostMessage.textContent = `Нужно минимум 3 игрока для старта (у вас ${data.player_count}).`;
+                } else {
+                    startButton.disabled = false;
+                    hostMessage.textContent = `Готово к старту (игроков: ${data.player_count}).`;
+                }
+            }
+        }
+
+        if (data.type === 'game_aborted') {
+            alert(data.message);
+            window.location.href = "{% url 'index' %}";
+        }
+
+        if (data.type === 'game_started') {
+            console.log('Игра начинается! Перенаправление...');
+            window.location.href = data.redirect_url;
+        }
+    };
+
+    lobbySocket.onclose = function(e) {
+        console.error('Socket лобби закрыт.');
+        if (!isHost) {
+             alert('Соединение с лобби потеряно.');
+             window.location.href = "{% url 'index' %}";
+        }
+    };
+
+    if (isHost && startGameBtn) {
+    startGameBtn.addEventListener('click', () => {
+        console.log('Отправка команды start_game на сервер...');
+        lobbySocket.send(JSON.stringify({
+            'type': 'start_game'
+        }));
+    });
+}
+
+    function renderPlayerList(players) {
+        playerListUL.innerHTML = ''; 
+
+        players.forEach(player => {
+            let roleText = '';
+            if (player.is_host) {
+                roleText = '<span class="player-role">(Ведущий)</span>';
+            }
+
+            const li = document.createElement('li');
+            li.className = 'player-item';
+            li.innerHTML = `
+                <div class="avatar" data-id="${player.avatar_id}"></div>
+                <div class="player-info">
+                    <span class="player-name">${player.nickname}</span>
+                    ${roleText}
+                </div>
+            `;
+            playerListUL.appendChild(li);
+        });
+    }
+    </script>
+
+    </body>
+</html>

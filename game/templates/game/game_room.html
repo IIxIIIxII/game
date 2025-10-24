@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Игра {{ game.room_code }}</title>
+    <style>
+        body { font-family: sans-serif; min-height: 100vh; background: #1a1a2e; color: #e0e0e0; text-align: center; margin: 0; }
+        
+        /* --- НОВЫЙ МАКЕТ: 2 КОЛОНКИ --- */
+        .page-layout {
+            display: flex;
+            height: 100vh;
+        }
+        .game-content {
+            flex: 2; /* 66% ширины */
+            padding: 30px;
+            display: grid;
+            place-items: center;
+            overflow-y: auto;
+        }
+        .chat-container {
+            flex: 1; /* 33% ширины */
+            background: #1f1f3d;
+            border-left: 2px solid #a942e0;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            box-sizing: border-box; /* Важно для padding */
+            max-height: 100vh;
+        }
+        /* --------------------------- */
+
+        .container { background: #1f1f3d; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); width: 100%; max-width: 600px; }
+        
+        .role-display { padding: 40px; border-radius: 10px; margin-bottom: 20px; }
+        .role-human { background: #27ae60; color: white; }
+        .role-alien { background: #c0392b; color: white; }
+        .role-host { background: #8e44ad; color: white; }
+        
+        .next-button { padding: 15px 30px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; margin-top: 10px; }
+        .next-button:disabled { background: #555; cursor: not-allowed; }
+
+        /* --- СТИЛИ ЧАТА --- */
+        .chat-container h2 {
+            color: #a942e0; text-align: center; margin-top: 0;
+        }
+        #chat-log {
+            flex-grow: 1; /* Занимает все доступное место */
+            overflow-y: auto;
+            background: #1a1a2e;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: left;
+            line-height: 1.4;
+        }
+        #chat-message-input {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            background: #2f2f4d;
+            border: 1px solid #555;
+            color: white;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .system-message { font-style: italic; color: #888; }
+        #chat-log strong { color: #a942e0; }
+        /* ------------------- */
+        
+        /* --- СТИЛИ ГОЛОСОВАНИЯ (НОВОЕ) --- */
+        .vote-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .vote-btn { background: #2980b9; width: 100%; box-sizing: border-box; }
+        .vote-btn span { display: block; font-size: 0.9rem; color: #ddd; margin-top: 5px; }
+        .vote-btn:disabled { background: #555; }
+        /* -------------------------- */
+
+    </style>
+</head>
+<body>
+
+    <div class="page-layout">
+
+        <div class="game-content">
+            <div class="container">
+                
+                {% if game.current_stage == 'roles' %}
+                    
+                    {% if is_host %}
+                        <div class="role-display role-host">
+                            <h2>Идет показ ролей</h2>
+                            <p>Игроки сейчас читают свои роли. Как только все будут готовы, нажмите "Далее".</p>
+                        </div>
+                        <button class="next-button" id="next-stage-btn">Далее (к Координатам)</button>
+                    
+                    {% elif player %}
+                        <h2>Твоя роль:</h2>
+                        {% if player.role == 'human' %}
+                            <div class="role-display role-human">
+                                <h1>ЧЕЛОВЕК</h1>
+                                <p>Ваша задача - найти ресурсы (N-1 безопасную координату). Не доверяйте Пришельцам!</p>
+                            </div>
+                        {% elif player.role == 'alien' %}
+                            <div class="role-display role-alien">
+                                <h1>ПРИШЕЛЕЦ</h1>
+                                <p>Ваша задача - заманить Людей на свои координаты. Врите. Притворяйтесь. Победите.</p>
+                            </div>
+                        {% endif %}
+                        <p><i>Ожидайте, пока Ведущий начнет следующий этап...</i></p>
+                    {% endif %}
+
+                {% elif game.current_stage == 'coordinates' %}
+                    
+                    {% if is_host %}
+                        <div class="role-display role-host">
+                            <h2>Идет обсуждение (Страница 4)</h2>
+                            <p>Игроки видят свои координаты и ресурсы. Сейчас они должны обсуждать в чате, куда лететь. Как только обсуждение закончится, нажмите "Далее" для перехода к голосованию.</p>
+                        </div>
+                        <button class="next-button" id="next-stage-btn">Далее (к Голосованию)</button>
+                    
+                    {% elif player %}
+                        <h2>Ваши Координаты (Страница 4)</h2>
+                        
+                        {% for coord in game.coordinates.all %}
+                            {% if coord.player == player %}
+                                <div class="role-display {% if coord.is_alien_coord %}role-alien{% else %}role-human{% endif %}">
+                                    <h3>{{ coord.coordinate_name }} (Это ВЫ)</h3>
+                                    <p><strong>Описание:</strong> {{ coord.resource_description }}</p>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+
+                        <hr style="border-color: #444;">
+                        
+                        <h4>Координаты других игроков (Общий список):</h4>
+                        <ul style="list-style: none; padding: 0;">
+                            {% for coord in game.coordinates.all %}
+                                {% if coord.player != player %}
+                                <li style="background: #2f2f4d; padding: 5px; margin-bottom: 5px; border-radius: 5px;">
+                                    {{ coord.coordinate_name }} (Игрок: {{ coord.player.nickname }})
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                        <p><i>Обсудите в чате, куда лететь. Ожидайте, пока Ведущий начнет голосование...</i></p>
+                    {% endif %}
+                
+                {% elif game.current_stage == 'voting' %}
+                
+                    {% if is_host %}
+                        <div class="role-display role-host">
+                            <h2>Идет голосование (Страница 5)</h2>
+                            <p>Игроки выбирают, куда лететь. Вы видите голоса в реальном времени. Когда все проголосуют, нажмите "Далее", чтобы увидеть результаты.</p>
+                        </div>
+                        
+                        <h4>Результаты в реальном времени:</h4>
+                        <ul style="text-align: left; max-width: 300px; margin: auto; list-style: none; padding: 0;">
+                        {% for coord in game.coordinates.all %}
+                            <li style="background: #2f2f4d; padding: 5px; margin-bottom: 5px; border-radius: 5px;">
+                                {{ coord.coordinate_name }} ({{coord.player.nickname}}): <strong>{{ coord.votes }}</strong>
+                            </li>
+                        {% endfor %}
+                        </ul>
+                        
+                        <button class="next-button" id="next-stage-btn">Далее (к Результатам)</button>
+                    
+                    {% elif player %}
+                        <h2>Голосование! (Страница 5)</h2>
+                        
+                        {% if player.has_voted %}
+                            <p><strong>Вы проголосовали.</strong> Ожидайте, пока проголосуют остальные.</p>
+                            <div class="vote-buttons">
+                            {% for coord in game.coordinates.all %}
+                                <button class="next-button vote-btn" disabled>
+                                    {{ coord.coordinate_name }} ({{ coord.player.nickname }})
+                                    <span>(Голосов: {{ coord.votes }})</span>
+                                </button>
+                            {% endfor %}
+                            </div>
+                        {% else %}
+                            <p>Выберите, на чью координату вы хотите отправить корабль.</p>
+                            <div class="vote-buttons">
+                            {% for coord in game.coordinates.all %}
+                                <button class="next-button vote-btn" 
+                                        data-coord-id="{{ coord.id }}">
+                                    {{ coord.coordinate_name }} ({{ coord.player.nickname }})
+                                    <span>(Голосов: {{ coord.votes }})</span>
+                                </button>
+                            {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                    {% endif %}
+                
+                {% elif game.current_stage == 'results' %}
+                    <h2>Результаты Раунда</h2>
+                    
+                    {% if last_visited_coord %}
+                        <p>Вы выбрали: <strong>{{ last_visited_coord.coordinate_name }}</strong> ({{ last_visited_coord.player.nickname }})</p>
+                        
+                        <div class="role-display role-human">
+                            <h3>ЭТО БЕЗОПАСНАЯ КООРДИНАТА!</h3>
+                            <p><strong>Описание:</strong> {{ last_visited_coord.resource_description }}</p>
+                        </div>
+                        
+                        <p>Людям нужно посетить еще <strong>{{ coords_needed_to_win }}</strong> координат(ы) для победы.</p>
+                    
+                    {% endif %}
+                
+                    {% if is_host %}
+                        <p>Нажмите "Далее", чтобы начать следующий раунд (с новыми координатами).</p>
+                        <button class="next-button" id="next-stage-btn">Далее (Новый Раунд)</button>
+                    {% else %}
+                        <p><i>Ожидайте, пока Ведущий начнет новый раунд...</i></p>
+                    {% endif %}
+                
+                {% elif game.current_stage == 'game_over' %}
+                    <h2>Игра Окончена!</h2>
+                
+                    {% if game.game_over_status == 'aliens_win' %}
+                        <div class="role-display role-alien">
+                            <h1>ПОБЕДА ПРИШЕЛЬЦЕВ!</h1>
+                            <p>Вы полетели на <strong>{{ last_visited_coord.coordinate_name }}</strong>...</p>
+                            <p><strong>Это была ловушка!</strong></p>
+                        </div>
+                        
+                    {% elif game.game_over_status == 'humans_win' %}
+                        <div class="role-display role-human">
+                            <h1>ПОБЕДА ЛЮДЕЙ!</h1>
+                            <p>Вы успешно посетили <strong>{{ game.visited_human_coords_count }}</strong> безопасных(е) координат(ы)!</p>
+                            <p>Корабль спасен!</p>
+                        </div>
+                    {% endif %}
+                    
+                    {% if is_host %}
+                        <p>Вы можете начать игру заново (это вернет всех в лобби).</p>
+                        <a href="{% url 'index' %}" class="next-button" style="text-decoration: none;">Выйти (Игра окончена)</a>
+                    {% else %}
+                        <a href="{% url 'index' %}" class="next-button" style="text-decoration: none;">Выйти (Игра окончена)</a>
+                    {% endif %}
+
+                {% endif %} 
+                </div> </div> <div class="chat-container">
+            <h2>Игровой чат</h2>
+            <div id="chat-log"></div>
+            <input id="chat-message-input" type="text" placeholder="Написать в чат... (Enter)">
+        </div>
+
+    </div>
+    
+    
+    <script>
+        const roomCode = '{{ game.room_code }}';
+        const isHost = {{ is_host|yesno:"true,false" }};
+        
+        // --- Элементы Игры ---
+        const nextStageBtn = document.querySelector('#next-stage-btn');
+        const voteButtons = document.querySelectorAll('.vote-btn');
+        
+        // --- Элементы Чата ---
+        const chatLog = document.querySelector('#chat-log');
+        const chatInput = document.querySelector('#chat-message-input');
+
+        // --- WebSocket ---
+        const gameSocket = new WebSocket(
+            'ws://' + window.location.host + '/ws/game/' + roomCode + '/'
+        );
+
+        gameSocket.onopen = function(e) {
+            console.log('Socket Игровой комнаты открыт.');
+        };
+        
+        gameSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            console.log('Получены данные:', data);
+            
+            // --- Обработчик ИГРЫ ---
+            if (data.type === 'update_stage') {
+                console.log('Сервер приказал обновить этап, перезагружаемся...');
+                window.location.reload();
+            }
+            
+            // --- Обработчик ЧАТА ---
+            if (data.type === 'chat_message') {
+                const messageElement = document.createElement('div');
+                if (data.username === 'Система') {
+                    messageElement.className = 'system-message';
+                    messageElement.textContent = data.message;
+                } else {
+                    messageElement.innerHTML = `<strong>${data.username}:</strong> ${data.message}`;
+                }
+                chatLog.appendChild(messageElement);
+                chatLog.scrollTop = chatLog.scrollHeight;
+            }
+        };
+
+        gameSocket.onclose = function(e) {
+            console.error('Socket Игровой комнаты закрыт.');
+            alert('Связь с сервером потеряна. Игра окончена.');
+            window.location.href = "{% url 'index' %}";
+        };
+        
+        // --- ОБРАБОТЧИК: Нажатие кнопки "Далее" (только у Ведущего) ---
+        if (isHost && nextStageBtn) {
+            nextStageBtn.addEventListener('click', () => {
+                console.log('Отправка команды next_stage на сервер...');
+                gameSocket.send(JSON.stringify({
+                    'type': 'next_stage'
+                }));
+                
+                nextStageBtn.disabled = true;
+                nextStageBtn.textContent = 'Загрузка...';
+            });
+        }
+        
+        // --- ОБРАБОТЧИК: Ввод в чате ---
+        if (chatInput) {
+            chatInput.addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') { 
+                    const message = chatInput.value;
+                    if (message.trim() !== '') {
+                        gameSocket.send(JSON.stringify({
+                            'type': 'chat_message',
+                            'message': message
+                        }));
+                        chatInput.value = '';
+                    }
+                }
+            });
+        }
+        
+        // --- ОБРАБОТЧИК ГОЛОСОВАНИЯ ---
+        if (voteButtons) {
+            voteButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    if (button.disabled) return; 
+
+                    const coordId = button.dataset.coordId;
+                    console.log(`Отправка голоса за ${coordId}...`);
+                    
+                    gameSocket.send(JSON.stringify({
+                        'type': 'submit_vote',
+                        'coordinate_id': coordId
+                    }));
+                    
+                    voteButtons.forEach(btn => {
+                        btn.disabled = true;
+                    });
+                });
+            });
+        }
+    </script>
+
+</body>
+</html>
