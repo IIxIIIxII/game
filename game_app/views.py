@@ -106,9 +106,27 @@ def join_game(request):
         messages.error(request, "Комната с таким кодом не найдена!")
         return redirect('index')
 
+# game_app/views.py
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+# Убедись, что все нужные импорты есть вверху файла
+from .models import GameSession, Player
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
+# ... (остальные твои view: index, create_game, join_game) ...
+
 def game_lobby(request, room_code):
     session_id = request.session.get('session_id')
     game = get_object_or_404(GameSession, room_code=room_code)
+
+    # --- ВОТ ДОБАВЛЕННАЯ ПРОВЕРКА ---
+    # Если игра уже НЕ в лобби, сразу перекидываем в игровую комнату
+    if game.current_stage != 'lobby':
+        # Неважно, хост ты или игрок, если игра идет - тебе в game_room
+        return redirect('game_room', room_code=game.room_code)
+    # --- КОНЕЦ ПРОВЕРКИ ---
+
     players = game.players.all()  # Только обычные игроки, без ведущего
     
     is_host = (session_id == game.host_session)
@@ -119,7 +137,7 @@ def game_lobby(request, room_code):
         messages.error(request, "Вы не состоите в этой игре.")
         return redirect('index')
     
-    # Обработка изменения данных в лобби
+    # Обработка изменения данных в лобби (POST-запросы)
     if request.method == "POST":
         action = request.POST.get('action')
         
@@ -146,14 +164,27 @@ def game_lobby(request, room_code):
                     )
                 
                 messages.success(request, "Данные успешно обновлены!")
+                # Перезагружаем страницу, чтобы показать обновленные данные
                 return redirect('game_lobby', room_code=room_code)
         
         elif action == 'delete_room' and is_host:
             # Удаляем комнату (игру)
+            
+            # Сначала уведомляем всех игроков, что комната удалена (опционально)
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                 f'game_{game.room_code}',
+                 {
+                      'type': 'game_aborted', # Используем тот же тип, что и при дисконнекте хоста
+                      'message': 'Ведущий удалил комнату.'
+                 }
+            )
+            
             game.delete()
             messages.success(request, "Комната успешно удалена!")
             return redirect('index')
 
+    # Готовим данные для отображения страницы (GET-запрос или после POST без редиректа)
     context = {
         'game': game,
         'players': players,
@@ -163,6 +194,7 @@ def game_lobby(request, room_code):
         'current_avatar_id': request.session.get('avatar_id', '1'),
     }
     return render(request, 'game_app/lobby.html', context)
+
 
 def game_room(request, room_code):
     session_id = request.session.get('session_id')

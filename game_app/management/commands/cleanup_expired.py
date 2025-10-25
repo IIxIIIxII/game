@@ -9,14 +9,14 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         expired_players = PlayerInGame.objects.filter(
             game__current_stage='lobby',
-            last_activity__lt=timezone.now() - datetime.timedelta(seconds=45)
+            last_activity__lt=timezone.now() - datetime.timedelta(seconds=7000)
         )
         player_count = expired_players.count()
         expired_players.delete()
         
         expired_games = GameSession.objects.filter(
             current_stage='game_over',
-            last_activity__lt=timezone.now() - datetime.timedelta(seconds=45)
+            last_activity__lt=timezone.now() - datetime.timedelta(seconds=7000)
         )
         game_count = expired_games.count()
         expired_games.delete()

@@ -114,8 +114,8 @@
 
                 {% if is_host %}
                 <div class="host-controls" id="host-controls-div">
-                    <button class="start-button" id="start-game-btn" {% if player_count < 3 %}disabled{% endif %}>
-                         Начать игру
+                    <button type="button" class="start-button" id="start-game-btn" {% if player_count < 3 %}disabled{% endif %}>
+                        Начать игру
                     </button>
                     <p id="host-message">
                         {% if player_count < 3 %}
@@ -295,15 +295,6 @@
                 playerListUL.appendChild(li);
             });
         }
-        
-        // --- Автообновление списка игроков каждые 5 секунд ---
-        setInterval(() => {
-            if (lobbySocket.readyState === WebSocket.OPEN) {
-                lobbySocket.send(JSON.stringify({
-                    'type': 'refresh_players'
-                }));
-            }
-        }, 5000);
     </script>
 
 </body>
