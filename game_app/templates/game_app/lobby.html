@@ -201,8 +201,10 @@
         }
 
         // --- Подключаемся к WebSocket ---
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+
         const lobbySocket = new WebSocket(
-            'ws://'
+            wsProtocol // <-- Используем правильный протокол (wsProtocol)
             + window.location.host
             + '/ws/game/'
             + roomCode

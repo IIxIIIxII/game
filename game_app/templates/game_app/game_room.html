@@ -248,104 +248,132 @@
     </div>
     
     
-    <script>
+<script>
         const roomCode = '{{ game.room_code }}';
         const isHost = {{ is_host|yesno:"true,false" }};
-        
+
         // --- Элементы Игры ---
         const nextStageBtn = document.querySelector('#next-stage-btn');
         const voteButtons = document.querySelectorAll('.vote-btn');
-        
+        // --- Добавлены элементы для кнопок конца игры ---
+        const continuePlayingBtn = document.querySelector('#continue-playing-btn');
+        const disbandRoomBtn = document.querySelector('#disband-room-btn');
+
         // --- Элементы Чата ---
         const chatLog = document.querySelector('#chat-log');
         const chatInput = document.querySelector('#chat-message-input');
 
         // --- WebSocket ---
+        // ИСПРАВЛЕНО: Добавлено определение wsProtocol
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
         const gameSocket = new WebSocket(
-            'ws://' + window.location.host + '/ws/game/' + roomCode + '/'
+            wsProtocol // <-- Используем правильный протокол
+            + window.location.host
+            + '/ws/game/' + roomCode + '/'
         );
 
         gameSocket.onopen = function(e) {
             console.log('Socket Игровой комнаты открыт.');
         };
-        
+
         gameSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
             console.log('Получены данные:', data);
-            
-            // --- Обработчик ИГРЫ ---
+
+            // Обработчик ИГРЫ (Обновление этапа)
             if (data.type === 'update_stage') {
                 console.log('Сервер приказал обновить этап, перезагружаемся...');
                 window.location.reload();
             }
-            
-            // --- Обработчик ЧАТА ---
-            if (data.type === 'chat_message') {
+
+            // Обработчик ЧАТА
+            else if (data.type === 'chat_message') {
                 const messageElement = document.createElement('div');
-                if (data.username === 'Система') {
-                    messageElement.className = 'system-message';
-                    messageElement.textContent = data.message;
-                } else {
-                    messageElement.innerHTML = `<strong>${data.username}:</strong> ${data.message}`;
-                }
+                if (data.username === 'Система') { messageElement.className = 'system-message'; }
+                messageElement.innerHTML = data.username === 'Система' ? data.message : `<strong>${data.username}:</strong> ${data.message}`;
                 chatLog.appendChild(messageElement);
                 chatLog.scrollTop = chatLog.scrollHeight;
+            }
+
+            // Обработчик ПЕРЕЗАПУСКА / ВОЗВРАТА В ЛОББИ
+            else if (data.type === 'close_and_redirect') {
+                console.log('Сервер приказал закрыть сокет и перейти по URL...');
+                gameSocket.close(1000);
+                window.location.href = data.redirect_url;
+            }
+
+            // Обработчик РОСПУСКА КОМНАТЫ / ВЫХОДА ХОСТА (Редирект на главную)
+            else if (data.type === 'force_redirect' || data.type === 'room_disbanded' || data.type === 'game_aborted') {
+                 console.warn('Получен принудительный редирект:', data.message);
+                 alert(data.message || 'Произошла ошибка.');
+                 gameSocket.close(1000);
+                 window.location.href = data.url || "{% url 'index' %}"; // Используем URL от сервера или главную
             }
         };
 
         gameSocket.onclose = function(e) {
-            console.error('Socket Игровой комнаты закрыт.');
-            alert('Связь с сервером потеряна. Игра окончена.');
-            window.location.href = "{% url 'index' %}";
+            console.error('Socket Игровой комнаты закрыт. Код:', e.code);
+            // Показываем алерт только если закрытие НЕ штатное и НЕ из-за перезагрузки
+            if (e.code !== 1000 && e.code !== 1001 && e.code !== 1006) {
+               alert('Связь с сервером потеряна. Игра окончена.');
+               window.location.href = "{% url 'index' %}";
+            }
         };
-        
-        // --- ОБРАБОТЧИК: Нажатие кнопки "Далее" (только у Ведущего) ---
+
+        // --- ОБРАБОТЧИК: Кнопка "Далее" (Ведущий) ---
         if (isHost && nextStageBtn) {
             nextStageBtn.addEventListener('click', () => {
                 console.log('Отправка команды next_stage на сервер...');
-                gameSocket.send(JSON.stringify({
-                    'type': 'next_stage'
-                }));
-                
-                nextStageBtn.disabled = true;
-                nextStageBtn.textContent = 'Загрузка...';
+                gameSocket.send(JSON.stringify({'type': 'next_stage'}));
+                nextStageBtn.disabled = true; nextStageBtn.textContent = 'Загрузка...';
             });
         }
-        
+
         // --- ОБРАБОТЧИК: Ввод в чате ---
         if (chatInput) {
             chatInput.addEventListener('keyup', function(e) {
-                if (e.key === 'Enter') { 
+                if (e.key === 'Enter') {
                     const message = chatInput.value;
                     if (message.trim() !== '') {
-                        gameSocket.send(JSON.stringify({
-                            'type': 'chat_message',
-                            'message': message
-                        }));
+                        gameSocket.send(JSON.stringify({'type': 'chat_message', 'message': message}));
                         chatInput.value = '';
                     }
                 }
             });
         }
-        
-        // --- ОБРАБОТЧИК ГОЛОСОВАНИЯ ---
+
+        // --- ОБРАБОТЧИК ГОЛОСОВАНИЯ (Игроки) ---
         if (voteButtons) {
             voteButtons.forEach(button => {
                 button.addEventListener('click', () => {
-                    if (button.disabled) return; 
-
+                    if (button.disabled) return;
                     const coordId = button.dataset.coordId;
                     console.log(`Отправка голоса за ${coordId}...`);
-                    
-                    gameSocket.send(JSON.stringify({
-                        'type': 'submit_vote',
-                        'coordinate_id': coordId
-                    }));
-                    
-                    voteButtons.forEach(btn => {
-                        btn.disabled = true;
-                    });
+                    gameSocket.send(JSON.stringify({'type': 'submit_vote', 'coordinate_id': coordId}));
+                    voteButtons.forEach(btn => { btn.disabled = true; });
                 });
+            });
+        }
+
+        // --- ОБРАБОТЧИК: Кнопка "Продолжить играть" (Ведущий) ---
+        if (isHost && continuePlayingBtn) {
+            continuePlayingBtn.addEventListener('click', () => {
+                console.log('Отправка команды continue_playing на сервер...');
+                gameSocket.send(JSON.stringify({'type': 'continue_playing'})); // Исправлено с restart_game
+                continuePlayingBtn.disabled = true; continuePlayingBtn.textContent = 'Загрузка...';
+                if (disbandRoomBtn) disbandRoomBtn.disabled = true;
+            });
+        }
+
+        // --- ОБРАБОТЧИК: Кнопка "Распустить комнату" (Ведущий) ---
+        if (isHost && disbandRoomBtn) {
+            disbandRoomBtn.addEventListener('click', () => {
+                if (confirm('Вы уверены, что хотите распустить комнату?')) {
+                    console.log('Отправка команды disband_room на сервер...');
+                    gameSocket.send(JSON.stringify({'type': 'disband_room'}));
+                    disbandRoomBtn.disabled = true; disbandRoomBtn.textContent = 'Загрузка...';
+                     if (continuePlayingBtn) continuePlayingBtn.disabled = true;
+                }
             });
         }
     </script>

@@ -7,7 +7,14 @@ SECRET_KEY = 'django-insecure-your-secret-key-here'
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    # Убери 'https://' и добавь шаблон с точкой (на случай смены адреса)
+    '.ngrok-free.dev',
+    # Можно оставить и конкретный адрес без https://, если хочешь
+    'cirrostrative-unshared-kelley.ngrok-free.dev',
+]
 
 INSTALLED_APPS = [
     'daphne',
@@ -76,3 +83,8 @@ CHANNEL_LAYERS = {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
 }
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000/',
+    'http://127.0.0.1:8000/',
+    'https://*.ngrok-free.dev/', # <-- Проверь эту строку очень внимательно
+]

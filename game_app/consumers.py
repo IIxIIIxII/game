@@ -250,12 +250,12 @@ class GameConsumer(WebsocketConsumer):
         winner_coord = game.coordinates.order_by('-votes').first()
         
         if not winner_coord:
-             game.current_stage = 'coordinates'
-             game.save()
-             async_to_sync(self.channel_layer.group_send)(
+            game.current_stage = 'coordinates'
+            game.save()
+            async_to_sync(self.channel_layer.group_send)(
                 self.room_group_name, {'type': 'update_game_stage'}
-             )
-             return
+            )
+            return
 
         winner_coord.was_visited = True
         winner_coord.save()
