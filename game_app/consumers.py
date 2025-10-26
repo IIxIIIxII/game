@@ -42,39 +42,49 @@ class GameConsumer(WebsocketConsumer):
             )
 
     def disconnect(self, close_code):
+        print(f"--- Disconnect: User {self.nickname} disconnecting (code: {close_code})...") # Добавил код закрытия
         game = GameSession.objects.filter(room_code=self.room_code).first()
         if not game:
+            print(f"--- Disconnect: Game {self.room_code} not found.")
+            async_to_sync(self.channel_layer.group_discard)(self.room_group_name, self.channel_name)
             return
 
-        # Отправляем сообщение в чат о выходе (только для Игроков)
-        if self.session_id != game.host_session:
+        is_host = (self.session_id == game.host_session)
+
+        # Отправляем сообщение в чат о выходе (если не хост)
+        if not is_host:
             async_to_sync(self.channel_layer.group_send)(
                 self.room_group_name,
-                {
-                    'type': 'chat_message',
-                    'message': f'{self.nickname} покинул комнату.',
-                    'username': 'Система'
-                }
+                { 'type': 'chat_message', 'message': f'{self.nickname} покинул комнату.', 'username': 'Система' }
             )
 
-        # Если игрок выходит из лобби, удаляем его
-        if self.session_id != game.host_session and game.current_stage == 'lobby':
-            player = Player.objects.filter(session_id=self.session_id, game=game).first()
-            if player:
-                player.delete()
-                # Обновляем список у всех
-                async_to_sync(self.channel_layer.group_send)(
-                    self.room_group_name,
-                    {'type': 'player_list_update'}
-                )
-        
-        # (Если Ведущий выходит из лобби, мы должны удалить игру, но это обрабатывается в views.py)
+        # --- ИЗМЕНЕНИЕ ЛОГИКИ УДАЛЕНИЯ ---
+        # Если игрок отключается от ЛОББИ, НЕ удаляем его, просто обновляем список
+        if not is_host and game.current_stage == 'lobby':
+             print(f"--- Disconnect: Player {self.nickname} disconnected from lobby. NOT removing from DB.")
+             # Просто уведомляем остальных, что игрок временно отключился
+             async_to_sync(self.channel_layer.group_send)(
+                 self.room_group_name,
+                 {'type': 'player_list_update'} # Другие увидят, что он пропал
+             )
+        # --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
+        # Если хост выходит (удаляем игру) - ЛОГИКА ОСТАЕТСЯ
+        elif is_host:
+             print(f"--- Disconnect: Host {self.nickname} disconnected. Deleting game {self.room_code}.")
+             async_to_sync(self.channel_layer.group_send)(
+                 self.room_group_name,
+                 { 'type': 'game_aborted', 'message': 'Ведущий покинул игру. Комната распущена.'}
+             )
+             try: game.delete()
+             except GameSession.DoesNotExist: pass
+
+        # Отсоединяемся от группы
         async_to_sync(self.channel_layer.group_discard)(
             self.room_group_name,
             self.channel_name
         )
-
+        print(f"--- Disconnect: User {self.nickname} fully disconnected.")
     # --- МЕТОД ПРИЕМА СООБЩЕНИЙ (ГЛАВНЫЙ МАРШРУТИЗАТОР) ---
     
     def receive(self, text_data):
