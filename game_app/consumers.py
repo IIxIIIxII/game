@@ -116,17 +116,22 @@ class GameConsumer(WebsocketConsumer):
     # --- МЕТОД ПРИЕМА СООБЩЕНИЙ (ГЛАВНЫЙ МАРШРУТИЗАТОР) ---
     
     def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message_type = text_data_json.get('type')
-
-        game = GameSession.objects.filter(room_code=self.room_code).first()
-        if not game:
-            print(f"--- Receive: Game {self.room_code} not found, exiting.") # <-- Print 1
+        try:
+            text_data_json = json.loads(text_data)
+        except json.JSONDecodeError:
+            print("--- Receive: Invalid JSON received")
             return
 
-        print(f"--- Receive: Got message type '{message_type}' from session {self.session_id}") # <-- Print 2 (добавил session_id)
+        message_type = text_data_json.get('type')
+        game = GameSession.objects.filter(room_code=self.room_code).first()
 
-        # 1. Чат (работает для всех)
+        if not game:
+            print(f"--- Receive: Game {self.room_code} not found.")
+            return
+
+        print(f"--- Receive: Got message type '{message_type}' from {self.session_id}")
+
+        # 1. Чат
         if message_type == 'chat_message':
             message = text_data_json.get('message', '')
             if message:
@@ -139,68 +144,70 @@ class GameConsumer(WebsocketConsumer):
                     }
                 )
         
-        # 2. Обновление лобби (работает для всех)
+        # 2. Обновление лобби
         elif message_type == 'refresh_players':
             async_to_sync(self.channel_layer.group_send)(
                 self.room_group_name,
                 {'type': 'player_list_update'}
             )
-        
-        # 3. Команды Ведущего
+
+        # 3. Обновление профиля (ник и аватар)
+        elif message_type == 'update_profile':
+            new_nickname = text_data_json.get('nickname')
+            new_avatar_id = text_data_json.get('avatar_id')
+            if new_nickname and new_avatar_id:
+                player = Player.objects.filter(session_id=self.session_id, game=game).first()
+                if player:
+                    player.nickname = new_nickname
+                    player.avatar_id = new_avatar_id
+                    player.save()
+                    self.nickname = new_nickname 
+                    async_to_sync(self.channel_layer.group_send)(
+                        self.room_group_name,
+                        {'type': 'player_list_update'}
+                    )
+
+        # 4. Команды Ведущего (Host)
         elif self.session_id == game.host_session:
-            print(f"--- Receive: User IS host ({self.session_id})") # <-- Print 3
             if message_type == 'start_game' and game.current_stage == 'lobby':
-                print(f"--- Receive: Calling start_game_logic!") # <-- Print 4
-                self.start_game_logic(game) # Передаем 'game' как аргумент
+                self.start_game_logic(game)
             
             elif message_type == 'next_stage':
-                print(f"--- Receive: Host requested next_stage from {game.current_stage}") # <-- Print для next_stage
                 if game.current_stage == 'roles':
                     self.generate_coordinates_logic(game)
                 elif game.current_stage == 'coordinates':
                     self.start_voting_logic(game)
                 elif game.current_stage == 'voting':
                     self.process_results_logic(game)
-                elif game.current_stage == 'results': # "Новый раунд"
+                elif game.current_stage == 'results':
                     self.generate_coordinates_logic(game)
-                else:
-                    print(f"--- Receive: next_stage ignored in current stage {game.current_stage}") # <-- Доп. Print
             else:
-                 print(f"--- Receive: Host command '{message_type}' not recognized or stage mismatch ({game.current_stage})") # <-- Print 5
+                 print(f"--- Receive: Unknown host command or stage mismatch: {message_type}")
 
-        # 4. Команды Игрока
+        # 5. Команды Игрока (Голосование)
         elif message_type == 'submit_vote' and game.current_stage == 'voting':
             try:
                 player = Player.objects.get(session_id=self.session_id, game=game)
-                if player.has_voted:
-                    print(f"--- Receive: Player {self.nickname} already voted.") # <-- Print для голосования
-                    return
-                
-                coordinate_id = text_data_json.get('coordinate_id')
-                coord = GameCoordinate.objects.get(id=coordinate_id, game=game)
-                
-                coord.votes += 1
-                coord.save()
-                
-                player.has_voted = True
-                player.save()
-                print(f"--- Receive: Vote by {self.nickname} for {coord.coordinate_name} successful.") # <-- Print для голосования
-                
-                async_to_sync(self.channel_layer.group_send)(
-                    self.room_group_name,
-                    {'type': 'update_game_stage'}
-                )
+                if not player.has_voted:
+                    coordinate_id = text_data_json.get('coordinate_id')
+                    coord = GameCoordinate.objects.get(id=coordinate_id, game=game)
+                    coord.votes += 1
+                    coord.save()
+                    player.has_voted = True
+                    player.save()
+                    async_to_sync(self.channel_layer.group_send)(
+                        self.room_group_name,
+                        {'type': 'update_game_stage'}
+                    )
             except (Player.DoesNotExist, GameCoordinate.DoesNotExist):
-                print(f"--- Receive: Error processing vote from {self.nickname}") # <-- Print для голосования
+                print(f"--- Receive: Vote error for player {self.nickname}")
 
-        # 5. Если ни одно из условий не подошло
+        # 6. Обработка исключений (если ни одно условие не подошло)
         else:
-             # Проверяем, может быть, юзер НЕ хост?
-             if message_type == 'start_game' and self.session_id != game.host_session:
-                 print(f"--- Receive: User ({self.session_id}) is NOT host ({game.host_session}) and tried to start game.") # <-- Print 6
-             else:
-                 print(f"--- Receive: Message type '{message_type}' ignored or condition not met for user {self.session_id}.") # <-- Print 7
-
+            if message_type == 'start_game' and self.session_id != game.host_session:
+                print(f"--- Receive: Non-host tried to start game.")
+            else:
+                print(f"--- Receive: Message '{message_type}' ignored.")
     # --- МЕТОДЫ ИГРОВОЙ ЛОГИКИ (ВЫЗЫВАЮТСЯ ИЗ RECEIVE) ---
     
     def start_game_logic(self, game):
