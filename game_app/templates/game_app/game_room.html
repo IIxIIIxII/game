@@ -6,377 +6,243 @@
     <style>
         body { font-family: sans-serif; min-height: 100vh; background: #1a1a2e; color: #e0e0e0; text-align: center; margin: 0; }
         
-        /* --- НОВЫЙ МАКЕТ: 2 КОЛОНКИ --- */
-        .page-layout {
-            display: flex;
-            height: 100vh;
-        }
-        .game-content {
-            flex: 2; /* 66% ширины */
-            padding: 30px;
-            display: grid;
-            place-items: center;
-            overflow-y: auto;
-        }
-        .chat-container {
-            flex: 1; /* 33% ширины */
-            background: #1f1f3d;
-            border-left: 2px solid #a942e0;
-            display: flex;
-            flex-direction: column;
-            padding: 10px;
-            box-sizing: border-box; /* Важно для padding */
-            max-height: 100vh;
-        }
-        /* --------------------------- */
+        /* --- МАКЕТ: 2 КОЛОНКИ --- */
+        .page-layout { display: flex; height: 100vh; }
+        .game-content { flex: 2; padding: 30px; display: grid; place-items: center; overflow-y: auto; }
+        .chat-container { flex: 1; background: #1f1f3d; border-left: 2px solid #a942e0; display: flex; flex-direction: column; padding: 10px; box-sizing: border-box; max-height: 100vh; }
 
         .container { background: #1f1f3d; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); width: 100%; max-width: 600px; }
         
         .role-display { padding: 40px; border-radius: 10px; margin-bottom: 20px; }
         .role-human { background: #27ae60; color: white; }
         .role-alien { background: #c0392b; color: white; }
+        .role-scientist { background: #2980b9; color: white; border: 2px solid #3498db; } /* Стиль Ученого */
         .role-host { background: #8e44ad; color: white; }
         
-        .next-button { padding: 15px 30px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; margin-top: 10px; }
+        .next-button { padding: 15px 30px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; margin-top: 10px; width: 100%; }
         .next-button:disabled { background: #555; cursor: not-allowed; }
 
-        /* --- СТИЛИ ЧАТА --- */
-        .chat-container h2 {
-            color: #a942e0; text-align: center; margin-top: 0;
-        }
-        #chat-log {
-            flex-grow: 1; /* Занимает все доступное место */
-            overflow-y: auto;
-            background: #1a1a2e;
-            padding: 10px;
-            border-radius: 5px;
-            text-align: left;
-            line-height: 1.4;
-        }
-        #chat-message-input {
-            width: 100%;
-            padding: 10px;
-            box-sizing: border-box;
-            background: #2f2f4d;
-            border: 1px solid #555;
-            color: white;
-            border-radius: 5px;
-            margin-top: 10px;
-        }
-        .system-message { font-style: italic; color: #888; }
-        #chat-log strong { color: #a942e0; }
-        /* ------------------- */
-        
-        /* --- СТИЛИ ГОЛОСОВАНИЯ (НОВОЕ) --- */
-        .vote-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
-        .vote-btn { background: #2980b9; width: 100%; box-sizing: border-box; }
-        .vote-btn span { display: block; font-size: 0.9rem; color: #ddd; margin-top: 5px; }
-        .vote-btn:disabled { background: #555; }
-        /* -------------------------- */
+        /* СКАНЕР УЧЕНОГО */
+        .scan-btn-small { background: #f1c40f; color: #1a1a2e; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 10px; font-size: 0.8rem; }
+        .scan-btn-small:disabled { background: #555; color: #888; cursor: not-allowed; }
+        .result-tag { font-weight: bold; margin-left: 10px; text-transform: uppercase; font-size: 0.8rem; }
+        .tag-danger { color: #e74c3c; }
+        .tag-safe { color: #2ecc71; }
 
+        /* КАСТОМНЫЙ МОДАЛ */
+        #custom-modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); }
+        .modal-box { background: #1f1f3d; width: 300px; margin: 20vh auto; padding: 20px; border-radius: 10px; border: 2px solid #a942e0; text-align: center; }
+        .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+        .m-btn { flex: 1; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .m-confirm { background: #2ecc71; color: white; }
+        .m-cancel { background: #e74c3c; color: white; }
+
+        /* ЧАТ */
+        .chat-container h2 { color: #a942e0; text-align: center; margin-top: 0; }
+        #chat-log { flex-grow: 1; overflow-y: auto; background: #1a1a2e; padding: 10px; border-radius: 5px; text-align: left; line-height: 1.4; }
+        #chat-message-input { width: 100%; padding: 10px; box-sizing: border-box; background: #2f2f4d; border: 1px solid #555; color: white; border-radius: 5px; margin-top: 10px; }
+        .system-message { font-style: italic; color: #888; }
+        
+        .vote-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <div class="page-layout">
+    <div id="custom-modal">
+        <div class="modal-box">
+            <h3 id="modal-title">Сканировать ДНК?</h3>
+            <p>Вы можете использовать сканер только один раз.</p>
+            <div class="modal-btns">
+                <button class="m-btn m-confirm" id="modal-confirm">ДА</button>
+                <button class="m-btn m-cancel" id="modal-cancel">НЕТ</button>
+            </div>
+        </div>
+    </div>
 
+    <div class="page-layout">
         <div class="game-content">
             <div class="container">
                 
                 {% if game.current_stage == 'roles' %}
-                    
                     {% if is_host %}
                         <div class="role-display role-host">
                             <h2>Идет показ ролей</h2>
-                            <p>Игроки сейчас читают свои роли. Как только все будут готовы, нажмите "Далее".</p>
+                            <p>Игроки сейчас читают свои роли.</p>
                         </div>
                         <button class="next-button" id="next-stage-btn">Далее (к Координатам)</button>
-                    
                     {% elif player %}
                         <h2>Твоя роль:</h2>
-                        {% if player.role == 'human' %}
-                            <div class="role-display role-human">
-                                <h1>ЧЕЛОВЕК</h1>
-                                <p>Ваша задача - найти ресурсы (N-1 безопасную координату). Не доверяйте Пришельцам!</p>
-                            </div>
-                        {% elif player.role == 'alien' %}
-                            <div class="role-display role-alien">
-                                <h1>ПРИШЕЛЕЦ</h1>
-                                <p>Ваша задача - заманить Людей на свои координаты. Врите. Притворяйтесь. Победите.</p>
-                            </div>
-                        {% endif %}
-                        <p><i>Ожидайте, пока Ведущий начнет следующий этап...</i></p>
+                        <div class="role-display {% if player.role == 'human' %}role-human{% elif player.role == 'alien' %}role-alien{% elif player.role == 'scientist' %}role-scientist{% endif %}">
+                            <h1>{{ player.get_role_display|upper }}</h1>
+                            <p>
+                                {% if player.role == 'human' %}Ищите ресурсы и выживайте.
+                                {% elif player.role == 'alien' %}Заманивайте людей в ловушки.
+                                {% elif player.role == 'scientist' %}У вас есть Био-сканер. Вы можете проверить одного игрока.{% endif %}
+                            </p>
+                        </div>
+                        <p><i>Ожидайте Ведущего...</i></p>
                     {% endif %}
 
                 {% elif game.current_stage == 'coordinates' %}
-                    
                     {% if is_host %}
-                        <div class="role-display role-host">
-                            <h2>Идет обсуждение (Страница 4)</h2>
-                            <p>Игроки видят свои координаты и ресурсы. Сейчас они должны обсуждать в чате, куда лететь. Как только обсуждение закончится, нажмите "Далее" для перехода к голосованию.</p>
-                        </div>
+                        <div class="role-display role-host"><h2>Обсуждение</h2></div>
                         <button class="next-button" id="next-stage-btn">Далее (к Голосованию)</button>
-                    
                     {% elif player %}
-                        <h2>Ваши Координаты (Страница 4)</h2>
-                        
+                        <h2>Ваши Координаты</h2>
                         {% for coord in game.coordinates.all %}
                             {% if coord.player == player %}
-                                <div class="role-display {% if coord.is_alien_coord %}role-alien{% else %}role-human{% endif %}">
-                                    <h3>{{ coord.coordinate_name }} (Это ВЫ)</h3>
-                                    <p><strong>Описание:</strong> {{ coord.resource_description }}</p>
+                                <div class="role-display {% if coord.is_alien_coord %}role-alien{% elif player.role == 'scientist' %}role-scientist{% else %}role-human{% endif %}">
+                                    <h3>{{ coord.coordinate_name }}</h3>
+                                    <p><strong>Данные:</strong> {{ coord.resource_description }}</p>
                                 </div>
                             {% endif %}
                         {% endfor %}
 
                         <hr style="border-color: #444;">
-                        
-                        <h4>Координаты других игроков (Общий список):</h4>
+                        <h4>Другие сектора:</h4>
                         <ul style="list-style: none; padding: 0;">
                             {% for coord in game.coordinates.all %}
                                 {% if coord.player != player %}
-                                <li style="background: #2f2f4d; padding: 5px; margin-bottom: 5px; border-radius: 5px;">
-                                    {{ coord.coordinate_name }} (Игрок: {{ coord.player.nickname }})
+                                <li style="background: #2f2f4d; padding: 10px; margin-bottom: 5px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>{{ coord.coordinate_name }} ({{ coord.player.nickname }})</span>
+                                    
+                                    {% if player.role == 'scientist' %}
+                                    <div id="scan-area-{{ coord.player.id }}">
+                                        {% if player.special_used %}
+                                            <small style="color:#666">Сканер исчерпан</small>
+                                        {% else %}
+                                            <button class="scan-btn-small" onclick="askScan('{{ coord.player.id }}', '{{ coord.player.nickname }}')">🧬 СКАНЕР</button>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
                                 </li>
                                 {% endif %}
                             {% endfor %}
                         </ul>
-                        <p><i>Обсудите в чате, куда лететь. Ожидайте, пока Ведущий начнет голосование...</i></p>
                     {% endif %}
-                
+
                 {% elif game.current_stage == 'voting' %}
-                
                     {% if is_host %}
-                        <div class="role-display role-host">
-                            <h2>Идет голосование (Страница 5)</h2>
-                            <p>Игроки выбирают, куда лететь. Вы видите голоса в реальном времени. Когда все проголосуют, нажмите "Далее", чтобы увидеть результаты.</p>
-                        </div>
-                        
-                        <h4>Результаты в реальном времени:</h4>
-                        <ul style="text-align: left; max-width: 300px; margin: auto; list-style: none; padding: 0;">
+                        <div class="role-display role-host"><h2>Голосование</h2></div>
                         {% for coord in game.coordinates.all %}
-                            <li style="background: #2f2f4d; padding: 5px; margin-bottom: 5px; border-radius: 5px;">
-                                {{ coord.coordinate_name }} ({{coord.player.nickname}}): <strong>{{ coord.votes }}</strong>
-                            </li>
+                            <div style="text-align:left; background:#2f2f4d; margin:5px; padding:5px; border-radius:5px;">
+                                {{ coord.coordinate_name }}: <strong>{{ coord.votes }}</strong>
+                            </div>
                         {% endfor %}
-                        </ul>
-                        
                         <button class="next-button" id="next-stage-btn">Далее (к Результатам)</button>
-                    
                     {% elif player %}
-                        <h2>Голосование! (Страница 5)</h2>
-                        
-                        {% if player.has_voted %}
-                            <p><strong>Вы проголосовали.</strong> Ожидайте, пока проголосуют остальные.</p>
-                            <div class="vote-buttons">
-                            {% for coord in game.coordinates.all %}
-                                <button class="next-button vote-btn" disabled>
-                                    {{ coord.coordinate_name }} ({{ coord.player.nickname }})
-                                    <span>(Голосов: {{ coord.votes }})</span>
-                                </button>
-                            {% endfor %}
-                            </div>
-                        {% else %}
-                            <p>Выберите, на чью координату вы хотите отправить корабль.</p>
-                            <div class="vote-buttons">
-                            {% for coord in game.coordinates.all %}
-                                <button class="next-button vote-btn" 
-                                        data-coord-id="{{ coord.id }}">
-                                    {{ coord.coordinate_name }} ({{ coord.player.nickname }})
-                                    <span>(Голосов: {{ coord.votes }})</span>
-                                </button>
-                            {% endfor %}
-                            </div>
-                        {% endif %}
-                        
+                        <h2>Куда летим?</h2>
+                        <div class="vote-buttons">
+                        {% for coord in game.coordinates.all %}
+                            <button class="next-button vote-btn" data-coord-id="{{ coord.id }}" {% if player.has_voted %}disabled{% endif %}>
+                                {{ coord.coordinate_name }} ({{ coord.player.nickname }})
+                                <span>Голосов: {{ coord.votes }}</span>
+                            </button>
+                        {% endfor %}
+                        </div>
                     {% endif %}
                 
                 {% elif game.current_stage == 'results' %}
                     <h2>Результаты Раунда</h2>
-                    
                     {% if last_visited_coord %}
-                        <p>Вы выбрали: <strong>{{ last_visited_coord.coordinate_name }}</strong> ({{ last_visited_coord.player.nickname }})</p>
-                        
-                        <div class="role-display role-human">
-                            <h3>ЭТО БЕЗОПАСНАЯ КООРДИНАТА!</h3>
-                            <p><strong>Описание:</strong> {{ last_visited_coord.resource_description }}</p>
+                        <div class="role-display {% if last_visited_coord.is_alien_coord %}role-alien{% else %}role-human{% endif %}">
+                            <h3>{{ last_visited_coord.coordinate_name }}</h3>
+                            <p>{{ last_visited_coord.resource_description }}</p>
                         </div>
-                        
-                        <p>Людям нужно посетить еще <strong>{{ coords_needed_to_win }}</strong> координат(ы) для победы.</p>
-                    
                     {% endif %}
-                
-                    {% if is_host %}
-                        <p>Нажмите "Далее", чтобы начать следующий раунд (с новыми координатами).</p>
-                        <button class="next-button" id="next-stage-btn">Далее (Новый Раунд)</button>
-                    {% else %}
-                        <p><i>Ожидайте, пока Ведущий начнет новый раунд...</i></p>
-                    {% endif %}
-                
+                    {% if is_host %}<button class="next-button" id="next-stage-btn">Новый Раунд</button>{% endif %}
+
                 {% elif game.current_stage == 'game_over' %}
                     <h2>Игра Окончена!</h2>
-                
-                    {% if game.game_over_status == 'aliens_win' %}
-                        <div class="role-display role-alien">
-                            <h1>ПОБЕДА ПРИШЕЛЬЦЕВ!</h1>
-                            <p>Вы полетели на <strong>{{ last_visited_coord.coordinate_name }}</strong>...</p>
-                            <p><strong>Это была ловушка!</strong></p>
-                        </div>
-                        
-                    {% elif game.game_over_status == 'humans_win' %}
-                        <div class="role-display role-human">
-                            <h1>ПОБЕДА ЛЮДЕЙ!</h1>
-                            <p>Вы успешно посетили <strong>{{ game.visited_human_coords_count }}</strong> безопасных(е) координат(ы)!</p>
-                            <p>Корабль спасен!</p>
-                        </div>
-                    {% endif %}
-                    
-                    {% if is_host %}
-                        <p>Вы можете начать игру заново (это вернет всех в лобби).</p>
-                        <a href="{% url 'index' %}" class="next-button" style="text-decoration: none;">Выйти (Игра окончена)</a>
-                    {% else %}
-                        <a href="{% url 'index' %}" class="next-button" style="text-decoration: none;">Выйти (Игра окончена)</a>
-                    {% endif %}
-
+                    <div class="role-display {% if game.game_over_status == 'aliens_win' %}role-alien{% else %}role-human{% endif %}">
+                        <h1>{% if game.game_over_status == 'aliens_win' %}ПОБЕДА ПРИШЕЛЬЦЕВ!{% else %}ПОБЕДА ЛЮДЕЙ!{% endif %}</h1>
+                    </div>
+                    <a href="{% url 'index' %}" class="next-button" style="text-decoration: none; display: block;">Выйти</a>
                 {% endif %} 
-                </div> </div> <div class="chat-container">
+            </div>
+        </div>
+
+        <div class="chat-container">
             <h2>Игровой чат</h2>
             <div id="chat-log"></div>
             <input id="chat-message-input" type="text" placeholder="Написать в чат... (Enter)">
         </div>
-
     </div>
-    
-    
-<script>
+
+    <script>
         const roomCode = '{{ game.room_code }}';
         const isHost = {{ is_host|yesno:"true,false" }};
-
-        // --- Элементы Игры ---
-        const nextStageBtn = document.querySelector('#next-stage-btn');
-        const voteButtons = document.querySelectorAll('.vote-btn');
-        // --- Добавлены элементы для кнопок конца игры ---
-        const continuePlayingBtn = document.querySelector('#continue-playing-btn');
-        const disbandRoomBtn = document.querySelector('#disband-room-btn');
-
-        // --- Элементы Чата ---
-        const chatLog = document.querySelector('#chat-log');
-        const chatInput = document.querySelector('#chat-message-input');
-
-        // --- WebSocket ---
-        // ИСПРАВЛЕНО: Добавлено определение wsProtocol
         const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-        const gameSocket = new WebSocket(
-            wsProtocol // <-- Используем правильный протокол
-            + window.location.host
-            + '/ws/game/' + roomCode + '/'
-        );
+        const gameSocket = new WebSocket(wsProtocol + window.location.host + '/ws/game/' + roomCode + '/');
 
-        gameSocket.onopen = function(e) {
-            console.log('Socket Игровой комнаты открыт.');
+        // МОДАЛ УЧЕНОГО
+        const modal = document.getElementById('custom-modal');
+        let targetId = null;
+
+        function askScan(pid, name) {
+            targetId = pid;
+            document.getElementById('modal-title').innerText = `Проверить ${name}?`;
+            modal.style.display = 'block';
+        }
+
+        document.getElementById('modal-cancel').onclick = () => { modal.style.display = 'none'; };
+        document.getElementById('modal-confirm').onclick = () => {
+            if (targetId) {
+                gameSocket.send(JSON.stringify({
+                    'type': 'use_ability',
+                    'target_id': targetId
+                }));
+                document.querySelectorAll('.scan-btn-small').forEach(b => b.disabled = true);
+            }
+            modal.style.display = 'none';
         };
 
         gameSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
-            console.log('Получены данные:', data);
 
-            // Обработчик ИГРЫ (Обновление этапа)
             if (data.type === 'update_stage') {
-                console.log('Сервер приказал обновить этап, перезагружаемся...');
                 window.location.reload();
             }
+            
+            // РЕЗУЛЬТАТ СКАНЕРА
+            else if (data.type === 'ability_result') {
+                const area = document.getElementById(`scan-area-${targetId}`);
+                if (area) {
+                    area.innerHTML = data.is_alien 
+                        ? '<span class="result-tag tag-danger">ПРИШЕЛЕЦ ⚠️</span>' 
+                        : '<span class="result-tag tag-safe">ЧЕЛОВЕК ✅</span>';
+                }
+            }
 
-            // Обработчик ЧАТА
             else if (data.type === 'chat_message') {
-                const messageElement = document.createElement('div');
-                if (data.username === 'Система') { messageElement.className = 'system-message'; }
-                messageElement.innerHTML = data.username === 'Система' ? data.message : `<strong>${data.username}:</strong> ${data.message}`;
-                chatLog.appendChild(messageElement);
-                chatLog.scrollTop = chatLog.scrollHeight;
-            }
-
-            // Обработчик ПЕРЕЗАПУСКА / ВОЗВРАТА В ЛОББИ
-            else if (data.type === 'close_and_redirect') {
-                console.log('Сервер приказал закрыть сокет и перейти по URL...');
-                gameSocket.close(1000);
-                window.location.href = data.redirect_url;
-            }
-
-            // Обработчик РОСПУСКА КОМНАТЫ / ВЫХОДА ХОСТА (Редирект на главную)
-            else if (data.type === 'force_redirect' || data.type === 'room_disbanded' || data.type === 'game_aborted') {
-                 console.warn('Получен принудительный редирект:', data.message);
-                 alert(data.message || 'Произошла ошибка.');
-                 gameSocket.close(1000);
-                 window.location.href = data.url || "{% url 'index' %}"; // Используем URL от сервера или главную
+                const el = document.createElement('div');
+                if (data.username === 'Система') el.className = 'system-message';
+                el.innerHTML = data.username === 'Система' ? data.message : `<strong>${data.username}:</strong> ${data.message}`;
+                document.getElementById('chat-log').appendChild(el);
+                document.getElementById('chat-log').scrollTop = document.getElementById('chat-log').scrollHeight;
             }
         };
 
-        gameSocket.onclose = function(e) {
-            console.error('Socket Игровой комнаты закрыт. Код:', e.code);
-            // Показываем алерт только если закрытие НЕ штатное и НЕ из-за перезагрузки
-            if (e.code !== 1000 && e.code !== 1001 && e.code !== 1006) {
-               alert('Связь с сервером потеряна. Игра окончена.');
-               window.location.href = "{% url 'index' %}";
+        // ВЕДУЩИЙ
+        const nextBtn = document.querySelector('#next-stage-btn');
+        if (isHost && nextBtn) {
+            nextBtn.onclick = () => gameSocket.send(JSON.stringify({'type': 'next_stage'}));
+        }
+
+        // ГОЛОСОВАНИЕ
+        document.querySelectorAll('.vote-btn').forEach(btn => {
+            btn.onclick = () => {
+                gameSocket.send(JSON.stringify({'type': 'submit_vote', 'coordinate_id': btn.dataset.coordId}));
+            };
+        });
+
+        // ЧАТ
+        document.getElementById('chat-message-input').onkeyup = (e) => {
+            if (e.key === 'Enter' && e.target.value.trim()) {
+                gameSocket.send(JSON.stringify({'type': 'chat_message', 'message': e.target.value}));
+                e.target.value = '';
             }
         };
-
-        // --- ОБРАБОТЧИК: Кнопка "Далее" (Ведущий) ---
-        if (isHost && nextStageBtn) {
-            nextStageBtn.addEventListener('click', () => {
-                console.log('Отправка команды next_stage на сервер...');
-                gameSocket.send(JSON.stringify({'type': 'next_stage'}));
-                nextStageBtn.disabled = true; nextStageBtn.textContent = 'Загрузка...';
-            });
-        }
-
-        // --- ОБРАБОТЧИК: Ввод в чате ---
-        if (chatInput) {
-            chatInput.addEventListener('keyup', function(e) {
-                if (e.key === 'Enter') {
-                    const message = chatInput.value;
-                    if (message.trim() !== '') {
-                        gameSocket.send(JSON.stringify({'type': 'chat_message', 'message': message}));
-                        chatInput.value = '';
-                    }
-                }
-            });
-        }
-
-        // --- ОБРАБОТЧИК ГОЛОСОВАНИЯ (Игроки) ---
-        if (voteButtons) {
-            voteButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    if (button.disabled) return;
-                    const coordId = button.dataset.coordId;
-                    console.log(`Отправка голоса за ${coordId}...`);
-                    gameSocket.send(JSON.stringify({'type': 'submit_vote', 'coordinate_id': coordId}));
-                    voteButtons.forEach(btn => { btn.disabled = true; });
-                });
-            });
-        }
-
-        // --- ОБРАБОТЧИК: Кнопка "Продолжить играть" (Ведущий) ---
-        if (isHost && continuePlayingBtn) {
-            continuePlayingBtn.addEventListener('click', () => {
-                console.log('Отправка команды continue_playing на сервер...');
-                gameSocket.send(JSON.stringify({'type': 'continue_playing'})); // Исправлено с restart_game
-                continuePlayingBtn.disabled = true; continuePlayingBtn.textContent = 'Загрузка...';
-                if (disbandRoomBtn) disbandRoomBtn.disabled = true;
-            });
-        }
-
-        // --- ОБРАБОТЧИК: Кнопка "Распустить комнату" (Ведущий) ---
-        if (isHost && disbandRoomBtn) {
-            disbandRoomBtn.addEventListener('click', () => {
-                if (confirm('Вы уверены, что хотите распустить комнату?')) {
-                    console.log('Отправка команды disband_room на сервер...');
-                    gameSocket.send(JSON.stringify({'type': 'disband_room'}));
-                    disbandRoomBtn.disabled = true; disbandRoomBtn.textContent = 'Загрузка...';
-                     if (continuePlayingBtn) continuePlayingBtn.disabled = true;
-                }
-            });
-        }
     </script>
-
 </body>
 </html>
