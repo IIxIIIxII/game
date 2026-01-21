@@ -136,7 +136,6 @@ class GameConsumer(WebsocketConsumer):
         elif message_type == 'use_ability':
             player = Player.objects.filter(session_id=self.session_id, game=game).first()
             if player and player.role == 'scientist' and not player.special_used:
-                # Проверка условия (от 6 игроков и 2 шпионов)
                 alien_count = Player.objects.filter(game=game, role='alien').count()
                 if alien_count >= 2:
                     target_id = text_data_json.get('target_id')
@@ -145,7 +144,6 @@ class GameConsumer(WebsocketConsumer):
                         player.special_used = True
                         player.save()
                         
-                        # Отправляем результат только Ученому
                         self.send(text_data=json.dumps({
                             'type': 'ability_result',
                             'target_nickname': target.nickname,
@@ -173,6 +171,11 @@ class GameConsumer(WebsocketConsumer):
                 if not player.has_voted:
                     coordinate_id = text_data_json.get('coordinate_id')
                     coord = GameCoordinate.objects.get(id=coordinate_id, game=game)
+                    
+                    # ЗАПРЕТ ГОЛОСОВАНИЯ ЗА СЕБЯ
+                    if coord.player == player:
+                        return # Прекращаем выполнение, если игрок выбрал свою координату
+
                     coord.votes += 1
                     coord.save()
                     player.has_voted = True
@@ -194,17 +197,12 @@ class GameConsumer(WebsocketConsumer):
             return
 
         random.shuffle(players)
-        
-        # Расчет ролей
         alien_count = 2 if player_count >= 5 else 1
-        
-        # Обнуляем статусы
         game.players.all().update(special_used=False)
 
         for i, player in enumerate(players):
             if i < alien_count:
                 player.role = 'alien'
-            # Ученый появляется только если игроков 6 или больше
             elif i == alien_count and player_count >= 6:
                 player.role = 'scientist'
             else:
@@ -283,8 +281,6 @@ class GameConsumer(WebsocketConsumer):
         
         game.save()
         async_to_sync(self.channel_layer.group_send)(self.room_group_name, {'type': 'update_game_stage'})
-
-    # --- МЕТОДЫ-ОБРАБОТЧИКИ ---
 
     def chat_message(self, event):
         self.send(text_data=json.dumps({
