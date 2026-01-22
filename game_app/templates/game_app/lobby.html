@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Лобби {{ game.room_code }}</title>
     <style>
-        /* ... (ваши стили остаются без изменений) ... */
+        /* ... ваши существующие стили ... */
         body { font-family: sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
         .lobby-container { max-width: 800px; margin: auto; background: #1f1f3d; padding: 20px; border-radius: 10px; }
         h1 { color: #a942e0; border-bottom: 2px solid #a942e0; padding-bottom: 10px; }
@@ -15,45 +15,41 @@
         .player-list { list-style: none; padding: 0; }
         .player-item { display: flex; align-items: center; background: #2f2f4d; padding: 10px; border-radius: 5px; margin-bottom: 10px; }
         .player-avatar { width: 50px; height: 50px; border-radius: 50%; margin-right: 15px; border: 2px solid #555; }
-        .player-avatar[data-id="1"] { background-color: #e74c3c !important; }
-        .player-avatar[data-id="2"] { background-color: #3498db !important; }
-        .player-avatar[data-id="3"] { background-color: #2ecc71 !important; }
-        .player-avatar[data-id="4"] { background-color: #f1c40f !important; }
-        .player-avatar[data-id="5"] { background-color: #9b59b6 !important; }
-        .player-avatar[data-id="6"] { background-color: #1abc9c !important; }
-        .player-avatar[data-id="7"] { background-color: #e67e22 !important; }
-        .player-avatar[data-id="8"] { background-color: #ecf0f1 !important; }
-        .player-avatar[data-id="9"] { background-color: #7f8c8d !important; }
-        .player-avatar[data-id="10"] { background-color: #34495e !important; }
+        
+        /* Цвета аватаров */
+        .player-avatar[data-id="1"], .profile-avatar[data-id="1"] { background-color: #e74c3c !important; }
+        .player-avatar[data-id="2"], .profile-avatar[data-id="2"] { background-color: #3498db !important; }
+        .player-avatar[data-id="3"], .profile-avatar[data-id="3"] { background-color: #2ecc71 !important; }
+        .player-avatar[data-id="4"], .profile-avatar[data-id="4"] { background-color: #f1c40f !important; }
+        .player-avatar[data-id="5"], .profile-avatar[data-id="5"] { background-color: #9b59b6 !important; }
+        .player-avatar[data-id="6"], .profile-avatar[data-id="6"] { background-color: #1abc9c !important; }
+        .player-avatar[data-id="7"], .profile-avatar[data-id="7"] { background-color: #e67e22 !important; }
+        .player-avatar[data-id="8"], .profile-avatar[data-id="8"] { background-color: #ecf0f1 !important; }
+        .player-avatar[data-id="9"], .profile-avatar[data-id="10"] { background-color: #7f8c8d !important; }
+        .player-avatar[data-id="10"], .profile-avatar[data-id="10"] { background-color: #34495e !important; }
+
         .player-name { font-size: 1.2rem; font-weight: bold; }
         .host-controls { margin-top: 20px; text-align: center; }
-        .start-button { padding: 15px 30px; background: #2ecc71; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; }
+        .start-button { padding: 15px 30px; background: #2ecc71; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; width: 100%; margin-bottom: 10px; }
         .start-button:disabled { background: #555; cursor: not-allowed; }
-        .delete-room-button { padding: 10px 20px; background: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        
+        /* Стили для кнопок выхода и удаления */
+        .delete-room-button, .leave-button { padding: 10px 20px; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; transition: background 0.2s; }
+        .delete-room-button { background: #e74c3c; margin-top: 10px; }
         .delete-room-button:hover { background: #c0392b; }
+        .leave-button { background: #7f8c8d; margin-top: 10px; text-decoration: none; display: inline-block; box-sizing: border-box; }
+        .leave-button:hover { background: #636e72; }
+
         .player-warning { margin-top: 20px; background: #f1c40f; color: #1a1a2e; padding: 15px; border-radius: 5px; text-align: center; }
-        .profile-form { margin-top: 20px; }
         .avatar-picker { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 15px 0; }
         .profile-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #555; cursor: pointer; transition: all 0.2s; }
         .profile-avatar.selected { border-color: #a942e0; box-shadow: 0 0 10px #a942e0; transform: scale(1.1); }
-        .profile-avatar[data-id="1"] { background-color: #e74c3c; }
-        .profile-avatar[data-id="2"] { background-color: #3498db; }
-        .profile-avatar[data-id="3"] { background-color: #2ecc71; }
-        .profile-avatar[data-id="4"] { background-color: #f1c40f; }
-        .profile-avatar[data-id="5"] { background-color: #9b59b6; }
-        .profile-avatar[data-id="6"] { background-color: #1abc9c; }
-        .profile-avatar[data-id="7"] { background-color: #e67e22; }
-        .profile-avatar[data-id="8"] { background-color: #ecf0f1; }
-        .profile-avatar[data-id="9"] { background-color: #7f8c8d; }
-        .profile-avatar[data-id="10"] { background-color: #34495e; }
+        
         .input-group { margin-bottom: 15px; }
         input[type="text"] { width: 100%; padding: 10px; box-sizing: border-box; background: #1f1f3d; border: 1px solid #555; color: white; border-radius: 5px; }
         .update-button { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
         .update-button:hover { background: #2980b9; }
         .host-info { background: #8e44ad; padding: 10px; border-radius: 5px; margin-bottom: 15px; text-align: center; }
-        .empty-list { text-align: center; color: #888; padding: 20px; }
-        
-        /* Добавим стиль для уведомления о сохранении */
         #save-status { font-size: 0.8rem; text-align: center; margin-top: 5px; display: none; }
     </style>
 </head>
@@ -81,8 +77,6 @@
                             <span class="player-name">{{ player.nickname }}</span>
                         </div>
                     </li>
-                    {% empty %}
-                    <li class="empty-list">Пока никто не присоединился...</li>
                     {% endfor %}
                 </ul>
 
@@ -99,18 +93,19 @@
                         {% endif %}
                     </p>
                     
-                    <form method="post" style="margin-top: 20px;">
+                    <form method="post" action="{% url 'index' %}">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="delete_room">
                         <button type="submit" class="delete-room-button" onclick="return confirm('Вы уверены, что хотите распустить комнату?')">
-                            Распустить комнату
+                            Распустить комнату (Выйти)
                         </button>
                     </form>
                 </div>
                 {% else %}
                 <div class="player-warning">
-                    <h4>Внимание!</h4>
-                    <p>Ожидайте, пока Ведущий начнет игру.</p>
+                    <h4>Ожидание...</h4>
+                    <p>Ведущий скоро начнет игру.</p>
+                    <a href="{% url 'index' %}" class="leave-button" onclick="return confirm('Вы уверены, что хотите покинуть лобби?')">Покинуть лобби</a>
                 </div>
                 {% endif %}
             </div>
@@ -129,7 +124,7 @@
                         <input type="text" id="nickname_input" placeholder="Введите ваш ник" value="{{ current_nickname }}" required maxlength="15">
                     </div>
 
-                    <button type="submit" class="update-button">Сохранить</button>
+                    <button type="submit" class="update-button">Сохранить изменения</button>
                     <div id="save-status">Сохранено!</div>
                 </form>
                 
@@ -149,20 +144,14 @@
         const playerCountHeader = document.querySelector('#player-count-header');
         const hostMessage = document.querySelector('#host-message');
         const startGameBtn = document.querySelector('#start-game-btn');
-        
-        // Поля профиля
         const profileForm = document.querySelector('#profile-update-form');
         const nickInput = document.querySelector('#nickname_input');
         const avatarHiddenInput = document.querySelector('#avatar_id_input');
         const saveStatus = document.querySelector('#save-status');
 
-        // Подключение к WebSocket
         const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-        const lobbySocket = new WebSocket(
-            wsProtocol + window.location.host + '/ws/game/' + roomCode + '/'
-        );
+        const lobbySocket = new WebSocket(wsProtocol + window.location.host + '/ws/game/' + roomCode + '/');
 
-        // --- ЛОГИКА ВЫБОРА АВАТАРА ---
         document.querySelectorAll('.profile-avatar').forEach(avatar => {
             avatar.addEventListener('click', function() {
                 document.querySelectorAll('.profile-avatar').forEach(a => a.classList.remove('selected'));
@@ -171,40 +160,29 @@
             });
         });
 
-        // --- ЛОГИКА ОТПРАВКИ ОБНОВЛЕНИЯ ПРОФИЛЯ ---
         profileForm.onsubmit = function(e) {
-            e.preventDefault(); // Предотвращаем перезагрузку страницы!
-            
-            const data = {
+            e.preventDefault();
+            lobbySocket.send(JSON.stringify({
                 'type': 'update_profile',
                 'nickname': nickInput.value,
                 'avatar_id': avatarHiddenInput.value
-            };
-            
-            lobbySocket.send(JSON.stringify(data));
-            
-            // Показываем надпись "Сохранено" на секунду
+            }));
             saveStatus.style.display = 'block';
-            saveStatus.style.color = '#2ecc71';
             setTimeout(() => { saveStatus.style.display = 'none'; }, 2000);
         };
 
-        // --- ПОЛУЧЕНИЕ СООБЩЕНИЙ ---
         lobbySocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
 
             if (data.type === 'player_list_update') {
                 playerCountHeader.textContent = `Игроки (${data.player_count}/7)`;
                 renderPlayerList(data.players);
-
                 if (isHost && startGameBtn) {
-                    if (data.player_count < 3) {
-                        startGameBtn.disabled = true;
-                        hostMessage.textContent = `Нужно минимум 3 игрока для старта (у вас ${data.player_count}).`;
-                    } else {
-                        startGameBtn.disabled = false;
-                        hostMessage.textContent = `Готово к старту (игроков: ${data.player_count}).`;
-                    }
+                    const minPlayers = 3;
+                    startGameBtn.disabled = data.player_count < minPlayers;
+                    hostMessage.textContent = data.player_count < minPlayers ? 
+                        `Нужно минимум ${minPlayers} игрока для старта (у вас ${data.player_count}).` : 
+                        `Готово к старту (игроков: ${data.player_count}).`;
                 }
             }
 
@@ -218,24 +196,16 @@
             }
         };
 
-        lobbySocket.onclose = function(e) {
-            console.error('Socket закрыт.');
-        };
-
         if (isHost && startGameBtn) {
             startGameBtn.onclick = () => {
                 lobbySocket.send(JSON.stringify({'type': 'start_game'}));
                 startGameBtn.disabled = true;
-                startGameBtn.textContent = 'Загрузка...';
+                startGameBtn.textContent = 'Запуск...';
             };
         }
 
         function renderPlayerList(players) {
             playerListUL.innerHTML = ''; 
-            if (players.length === 0) {
-                playerListUL.innerHTML = '<li class="empty-list">Пока никто не присоединился...</li>';
-                return;
-            }
             players.forEach(player => {
                 const li = document.createElement('li');
                 li.className = 'player-item';
