@@ -224,3 +224,13 @@ def game_room(request, room_code):
         'coords_needed_to_win': coords_needed_to_win,
     }
     return render(request, 'game_app/game_room.html', context)
+
+def leave_game(request, room_code):
+    session_id = request.session.get('session_id')
+    try:
+        game = GameSession.objects.get(room_code=room_code)
+        Player.objects.filter(session_id=session_id, game=game).delete()
+    except (GameSession.DoesNotExist, Player.DoesNotExist):
+        pass
+
+    return redirect('index')

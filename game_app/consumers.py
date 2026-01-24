@@ -43,14 +43,11 @@ class GameConsumer(WebsocketConsumer):
             {'type': 'player_list_update'}
         )
 
-    # --- ВСПОМОГАТЕЛЬНЫЙ МЕТОД ДЛЯ БЕЗОПАСНОЙ ОТПРАВКИ ---
+    # --- МЕТОД ДЛЯ БЕЗОПАСНОЙ ОТПРАВКИ (защита от ngrok 502) ---
     def safe_send(self, data):
-        """Пытается отправить данные. Если сокет закрыт - игнорирует ошибку."""
         try:
             self.send(text_data=json.dumps(data))
         except Exception:
-            # Сокет уже закрыт клиентом (например, при перезагрузке страницы).
-            # Это нормально, просто игнорируем.
             pass
 
     def receive(self, text_data):
@@ -58,7 +55,6 @@ class GameConsumer(WebsocketConsumer):
             text_data_json = json.loads(text_data)
             message_type = text_data_json.get('type')
             
-            # Защита БД
             try:
                 game = GameSession.objects.filter(room_code=self.room_code).first()
             except Exception:
@@ -75,7 +71,7 @@ class GameConsumer(WebsocketConsumer):
                         { 'type': 'chat_message', 'message': message, 'username': self.nickname }
                     )
             
-            # 2. ПРОФИЛЬ
+            # 2. ПРОФИЛЬ (С ОБНОВЛЕНИЕМ НИКА В СЕССИИ)
             elif message_type == 'update_profile':
                 new_nickname = text_data_json.get('nickname')
                 new_avatar_id = text_data_json.get('avatar_id')
@@ -86,7 +82,12 @@ class GameConsumer(WebsocketConsumer):
                             player.nickname = new_nickname
                             player.avatar_id = new_avatar_id
                             player.save()
-                            self.nickname = new_nickname 
+                            
+                            # ОБНОВЛЯЕМ НИК ВЕЗДЕ
+                            self.nickname = new_nickname
+                            self.scope['session']['nickname'] = new_nickname
+                            self.scope['session'].save()
+                            
                             async_to_sync(self.channel_layer.group_send)(
                                 self.room_group_name, {'type': 'player_list_update'}
                             )
@@ -112,7 +113,7 @@ class GameConsumer(WebsocketConsumer):
                 if message_type == 'start_game' and game.current_stage == 'lobby':
                     self.start_game_logic(game)
                 elif message_type == 'next_stage':
-                    time.sleep(0.05) # Микро-задержка для стабильности SQLite
+                    time.sleep(0.05) 
                     if game.current_stage == 'roles': self.generate_coordinates_logic(game)
                     elif game.current_stage == 'coordinates': self.start_voting_logic(game)
                     elif game.current_stage == 'voting': self.process_results_logic(game)
@@ -139,7 +140,7 @@ class GameConsumer(WebsocketConsumer):
                         if coord.player == player: return 
                         if coord.was_visited: return
 
-                        # Проверка повтора
+                        # Защита от повтора
                         last_vote_target_id = self.scope['session'].get('last_vote_target_id')
                         if last_vote_target_id and str(last_vote_target_id) == str(coord.player.id):
                             self.safe_send({
@@ -161,8 +162,7 @@ class GameConsumer(WebsocketConsumer):
                         )
 
         except Exception as e:
-            print(f"Server Logic Error: {e}")
-            # traceback.print_exc() # Можно включить для отладки
+            print(f"Server Error: {e}")
 
     # --- ЛОГИКА ---
     
@@ -287,7 +287,7 @@ class GameConsumer(WebsocketConsumer):
         except Exception as e:
             print(f"Migration Error: {e}")
 
-    # --- Handlers (ЗДЕСЬ БЫЛА ОШИБКА, ТЕПЕРЬ ИСПОЛЬЗУЕМ SAFE_SEND) ---
+    # --- Handlers ---
     
     def chat_message(self, event):
         self.safe_send({
@@ -309,13 +309,10 @@ class GameConsumer(WebsocketConsumer):
         self.safe_send({'type': 'force_reload'})
 
     def player_list_update(self, event):
-        # Самое проблемное место. Оборачиваем в try-catch внутри логики БД на всякий случай,
-        # а отправку делаем через safe_send.
         try:
             game = GameSession.objects.filter(room_code=self.room_code).first()
             if not game: return
             
-            # Чтение игроков может быть медленным при нагрузке
             players = [{'nickname': p.nickname, 'avatar_id': p.avatar_id} for p in game.players.all()]
             
             self.safe_send({
@@ -324,7 +321,7 @@ class GameConsumer(WebsocketConsumer):
                 'player_count': len(players)
             })
         except Exception:
-            pass # Если БД залочена или сокет умер - игнорируем
+            pass 
 
     def room_disbanded(self, event):
         self.safe_send(event)
