@@ -2,168 +2,242 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Игра {{ game.room_code }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Терминал | {{ game.room_code }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; min-height: 100vh; background: #1a1a2e; color: #e0e0e0; text-align: center; margin: 0; }
-        .page-layout { display: flex; height: 100vh; }
-        .game-content { flex: 2; padding: 30px; display: grid; place-items: center; overflow-y: auto; }
-        .chat-container { flex: 1; background: #1f1f3d; border-left: 2px solid #a942e0; display: flex; flex-direction: column; padding: 10px; box-sizing: border-box; max-height: 100vh; }
-        .container { background: #1f1f3d; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); width: 100%; max-width: 600px; }
-        .role-display { padding: 40px; border-radius: 10px; margin-bottom: 20px; }
-        .role-human { background: #27ae60; color: white; }
-        .role-alien { background: #c0392b; color: white; }
-        .role-scientist { background: #2980b9; color: white; border: 2px solid #3498db; }
-        .role-host { background: #8e44ad; color: white; }
-        .next-button { padding: 15px 30px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; margin-top: 10px; width: 100%; }
-        .next-button:disabled { background: #555; cursor: not-allowed; }
-        .scan-btn-small { background: #f1c40f; color: #1a1a2e; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 10px; font-size: 0.8rem; }
-        .scan-btn-small:disabled { background: #555; color: #888; cursor: not-allowed; }
-        .result-tag { font-weight: bold; margin-left: 10px; text-transform: uppercase; font-size: 0.8rem; }
-        .tag-danger { color: #e74c3c; }
-        .tag-safe { color: #2ecc71; }
-        #custom-modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); }
-        .modal-box { background: #1f1f3d; width: 300px; margin: 20vh auto; padding: 20px; border-radius: 10px; border: 2px solid #a942e0; text-align: center; }
-        .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
-        .m-btn { flex: 1; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .m-confirm { background: #2ecc71; color: white; }
-        .m-cancel { background: #e74c3c; color: white; }
-        .chat-container h2 { color: #a942e0; text-align: center; margin-top: 0; }
-        #chat-log { flex-grow: 1; overflow-y: auto; background: #1a1a2e; padding: 10px; border-radius: 5px; text-align: left; line-height: 1.4; }
-        #chat-message-input { width: 100%; padding: 10px; box-sizing: border-box; background: #2f2f4d; border: 1px solid #555; color: white; border-radius: 5px; margin-top: 10px; }
-        .system-message { font-style: italic; color: #888; }
-        .vote-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
-        .self-vote-label { font-size: 0.8rem; color: #ff7675; font-weight: bold; display: block; }
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-purple: #bc13fe;
+            --neon-red: #ff0055;
+            --neon-green: #0aff00;
+            --bg-dark: #05050a;
+            --glass: rgba(20, 20, 35, 0.7);
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 3px),
+                radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 3px);
+            background-size: 550px 550px, 350px 350px;
+            color: #e0e0e0; margin: 0; height: 100vh; overflow: hidden;
+        }
+
+        .page-layout { display: flex; height: 100vh; padding: 20px; gap: 20px; }
+        .game-interface { flex: 3; background: var(--glass); border: 1px solid rgba(0, 243, 255, 0.2); border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .comm-link { flex: 1; background: rgba(10, 10, 15, 0.9); border-left: 2px solid var(--neon-purple); border-radius: 15px; display: flex; flex-direction: column; }
+
+        h2, h3 { font-family: 'Orbitron', sans-serif; text-transform: uppercase; margin: 0; }
+        .header-panel { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .phase-indicator { color: var(--neon-blue); border: 1px solid var(--neon-blue); padding: 5px 15px; border-radius: 20px; }
+
+        .galaxy-map { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 30px; overflow-y: auto; height: 100%; }
+
+        .sector-card {
+            background: rgba(20, 25, 40, 0.8); border: 1px solid #444; border-radius: 10px; padding: 20px; text-align: center; position: relative; transition: 0.3s;
+        }
+        .sector-card:not(.disabled):hover { transform: translateY(-5px); border-color: var(--neon-blue); box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); }
+        .sector-card.disabled { opacity: 0.5; filter: grayscale(80%); border-color: #333; background: rgba(0,0,0,0.5); pointer-events: none; }
+
+        .sector-visual { width: 70px; height: 70px; margin: 0 auto 10px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #4facfe, #00f2fe); }
+        .sector-name { font-size: 1.1rem; color: #fff; margin-bottom: 5px; font-weight: bold; }
+        .sector-owner { font-size: 0.9rem; color: #888; }
+        
+        .vote-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8);
+            display: flex; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s;
+        }
+        .sector-card:not(.disabled):hover .vote-overlay { opacity: 1; }
+
+        .btn-vote { background: transparent; color: var(--neon-blue); border: 2px solid var(--neon-blue); padding: 10px 20px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; }
+        .btn-vote:hover { background: var(--neon-blue); color: #000; }
+        
+        .vote-count { position: absolute; top: 10px; right: 10px; background: #fff; color: #000; border-radius: 50%; width: 25px; height: 25px; line-height: 25px; font-weight: bold; }
+
+        .scan-result-badge { display: inline-block; padding: 5px 10px; border-radius: 5px; font-weight: bold; margin-top: 5px; font-size: 0.9rem; animation: fadeIn 0.5s; }
+        .res-alien { background: #e74c3c; color: white; box-shadow: 0 0 10px #e74c3c; }
+        .res-human { background: #2ecc71; color: black; box-shadow: 0 0 10px #2ecc71; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .scan-icon { position: absolute; top: 10px; right: 10px; font-size: 1.5rem; cursor: pointer; transition: 0.2s; }
+        .scan-icon:hover { transform: scale(1.2); }
+
+        .offline-tag { font-family: 'Orbitron'; color: #ff0055; font-weight: bold; border: 1px solid #ff0055; padding: 2px 5px; font-size: 0.7rem; position: absolute; top: 10px; left: 10px; transform: rotate(-15deg); }
+
+        /* --- МОДАЛЬНОЕ ОКНО (POPUP) --- */
+        #custom-modal { display: none; position: fixed; z-index: 5000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); justify-content: center; align-items: center; }
+        .modal-box { 
+            background: rgba(20, 20, 35, 0.95); width: 350px; padding: 30px; border-radius: 15px; 
+            border: 2px solid var(--neon-blue); text-align: center; box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
+            animation: slideDown 0.3s;
+        }
+        @keyframes slideDown { from {transform: translateY(-50px); opacity: 0;} to {transform: translateY(0); opacity: 1;} }
+        
+        .modal-box h3 { color: var(--neon-blue); margin-bottom: 15px; }
+        .modal-box p { margin-bottom: 25px; font-size: 1.1rem; }
+        
+        .modal-btns { display: flex; gap: 15px; justify-content: center; }
+        .m-btn { 
+            flex: 1; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; text-transform: uppercase; transition: 0.2s;
+        }
+        .m-confirm { background: var(--neon-blue); color: #000; }
+        .m-confirm:hover { box-shadow: 0 0 15px var(--neon-blue); }
+        .m-cancel { background: transparent; border: 2px solid #555; color: #aaa; }
+        .m-cancel:hover { border-color: #fff; color: #fff; }
+
+        /* HOST ACTIONS */
+        .host-actions { position: absolute; bottom: 0; width: 100%; padding: 20px; background: rgba(0,0,0,0.8); display: flex; justify-content: center; gap: 15px; }
+        .cyber-btn { background: var(--bg-dark); color: #fff; border: 1px solid #fff; padding: 12px 25px; font-family: 'Rajdhani'; font-size: 1.1rem; cursor: pointer; transition: 0.2s; }
+        .cyber-btn:hover { background: #fff; color: #000; }
+        .cyber-btn.primary { border-color: var(--neon-blue); color: var(--neon-blue); }
+        .cyber-btn.primary:hover { background: var(--neon-blue); color: #000; }
+
+        #chat-log { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; font-size: 0.9rem; }
+        .msg { padding: 5px; border-left: 2px solid #555; background: rgba(255,255,255,0.05); }
+        .msg strong { color: var(--neon-blue); }
+        #chat-message-input { width: 100%; background: #111; border: none; border-top: 1px solid #333; color: #fff; padding: 15px; outline: none; }
+
+        #status-bar { position: fixed; top: 0; width: 100%; text-align: center; font-family: 'Orbitron'; z-index: 9999; display: none; padding: 5px; }
+        .status-connecting { background: #f39c12; color: #000; }
+        .status-error { background: #e74c3c; color: #fff; }
     </style>
 </head>
 <body>
 
+    <div id="status-bar"></div>
+
     <div id="custom-modal">
         <div class="modal-box">
-            <h3 id="modal-title">Сканировать ДНК?</h3>
-            <p>Вы можете использовать сканер только один раз.</p>
+            <h3 id="modal-title">ЦЕЛЬ ЗАХВАЧЕНА</h3>
+            <p>Активировать био-сканер на выбранном объекте?</p>
             <div class="modal-btns">
-                <button class="m-btn m-confirm" id="modal-confirm">ДА</button>
-                <button class="m-btn m-cancel" id="modal-cancel">НЕТ</button>
+                <button class="m-btn m-confirm" id="modal-confirm">СКАНИРОВАТЬ</button>
+                <button class="m-btn m-cancel" id="modal-cancel">ОТМЕНА</button>
             </div>
         </div>
     </div>
 
     <div class="page-layout">
-        <div class="game-content">
-            <div class="container">
+        <div class="game-interface">
+            <div class="header-panel">
+                <h2>Сектор: {{ game.room_code }}</h2>
+                <div class="phase-indicator">
+                    {% if game.current_stage == 'roles' %}БРИФИНГ
+                    {% elif game.current_stage == 'coordinates' %}РАЗВЕДКА
+                    {% elif game.current_stage == 'voting' %}ВЫБОР ЦЕЛИ
+                    {% elif game.current_stage == 'results' %}ОТЧЕТ
+                    {% elif game.current_stage == 'game_over' %}КОНЕЦ
+                    {% endif %}
+                </div>
+            </div>
+
+            <div style="flex:1; overflow-y:auto; position: relative;">
                 
                 {% if game.current_stage == 'roles' %}
-                    {% if is_host %}
-                        <div class="role-display role-host">
-                            <h2>Идет показ ролей</h2>
-                            <p>Игроки сейчас читают свои роли.</p>
-                        </div>
-                        <button class="next-button" id="next-stage-btn">Далее (к Координатам)</button>
-                    {% elif player %}
-                        <h2>Твоя роль:</h2>
-                        <div class="role-display {% if player.role == 'human' %}role-human{% elif player.role == 'alien' %}role-alien{% elif player.role == 'scientist' %}role-scientist{% endif %}">
-                            <h1>{{ player.get_role_display|upper }}</h1>
-                            <p>
-                                {% if player.role == 'human' %}Ищите ресурсы и выживайте.
-                                {% elif player.role == 'alien' %}Заманивайте людей в ловушки.
-                                {% elif player.role == 'scientist' %}У вас есть Био-сканер. Вы можете проверить одного игрока.{% endif %}
-                            </p>
-                        </div>
-                        <p><i>Ожидайте Ведущего...</i></p>
-                    {% endif %}
+                    <div style="display:flex; height:100%; align-items:center; justify-content:center; flex-direction:column; text-align:center;">
+                        {% if is_host %}
+                            <h3 style="color:var(--neon-purple)">Панель Ведущего</h3>
+                            <button class="cyber-btn primary action-btn" id="next-stage-btn" style="margin-top:20px;">Запуск Протокола</button>
+                        {% else %}
+                            <h1 style="font-size:3rem; color: {% if player.role == 'human' %}var(--neon-green){% elif player.role == 'alien' %}var(--neon-red){% else %}var(--neon-blue){% endif %}">
+                                {{ player.get_role_display|upper }}
+                            </h1>
+                            <p>{% if player.role == 'human' %}Цель: Выжить.{% elif player.role == 'alien' %}Цель: Уничтожить.{% elif player.role == 'scientist' %}Оборудование: Био-сканер.{% endif %}</p>
+                        {% endif %}
+                    </div>
 
                 {% elif game.current_stage == 'coordinates' %}
-                    {% if is_host %}
-                        <div class="role-display role-host"><h2>Обсуждение</h2></div>
-                        <button class="next-button" id="next-stage-btn">Далее (к Голосованию)</button>
-                    {% elif player %}
-                        <h2>Ваши Координаты</h2>
+                    <div class="galaxy-map">
                         {% for coord in game.coordinates.all %}
                             {% if coord.player == player %}
-                                <div class="role-display {% if coord.is_alien_coord %}role-alien{% elif player.role == 'scientist' %}role-scientist{% else %}role-human{% endif %}">
-                                    <h3>{{ coord.coordinate_name }}</h3>
-                                    <p><strong>Данные:</strong> {{ coord.resource_description }}</p>
-                                </div>
+                            <div class="sector-card" style="border-color: var(--neon-green);">
+                                <div class="sector-visual"></div>
+                                <div class="sector-name">{{ coord.coordinate_name }}</div>
+                                <div class="sector-owner">ВЫ</div>
+                                <div style="margin-top:10px; color:var(--neon-green)">{{ coord.resource_description }}</div>
+                            </div>
+                            {% else %}
+                            <div class="sector-card {% if coord.was_visited %}disabled{% endif %}">
+                                <div class="sector-visual" style="filter: hue-rotate({{ forloop.counter0 }}0deg);"></div>
+                                <div class="sector-name">{{ coord.coordinate_name }}</div>
+                                <div class="sector-owner">{{ coord.player.nickname }}</div>
+                                
+                                {% if coord.was_visited %}
+                                    <div class="offline-tag">OFFLINE</div>
+                                {% else %}
+                                    <div id="scan-res-{{ coord.player.id }}"></div>
+                                    {% if player.role == 'scientist' and not player.special_used %}
+                                        <div class="scan-icon action-btn" onclick="openScanModal('{{ coord.player.id }}', '{{ coord.player.nickname }}')">🧬</div>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
                             {% endif %}
                         {% endfor %}
-
-                        <hr style="border-color: #444;">
-                        <h4>Другие сектора:</h4>
-                        <ul style="list-style: none; padding: 0;">
-                            {% for coord in game.coordinates.all %}
-                                {% if coord.player != player %}
-                                <li style="background: #2f2f4d; padding: 10px; margin-bottom: 5px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;">
-                                    <span>{{ coord.coordinate_name }} ({{ coord.player.nickname }})</span>
-                                    
-                                    {% if player.role == 'scientist' %}
-                                    <div id="scan-area-{{ coord.player.id }}">
-                                        {% if player.special_used %}
-                                            <small style="color:#666">Сканер исчерпан</small>
-                                        {% else %}
-                                            <button class="scan-btn-small" onclick="askScan('{{ coord.player.id }}', '{{ coord.player.nickname }}')">🧬 СКАНЕР</button>
-                                        {% endif %}
-                                    </div>
-                                    {% endif %}
-                                </li>
-                                {% endif %}
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
+                    </div>
+                    {% if is_host %}<div class="host-actions"><button class="cyber-btn primary action-btn" id="next-stage-btn">Начать Голосование</button></div>{% endif %}
 
                 {% elif game.current_stage == 'voting' %}
-                    {% if is_host %}
-                        <div class="role-display role-host"><h2>Голосование</h2></div>
+                    <div class="galaxy-map">
                         {% for coord in game.coordinates.all %}
-                            <div style="text-align:left; background:#2f2f4d; margin:5px; padding:5px; border-radius:5px;">
-                                {{ coord.coordinate_name }}: <strong>{{ coord.votes }}</strong>
-                            </div>
-                        {% endfor %}
-                        <button class="next-button" id="next-stage-btn">Далее (к Результатам)</button>
-                    {% elif player %}
-                        <h2>Куда летим?</h2>
-                        <div class="vote-buttons">
-                        {% for coord in game.coordinates.all %}
-                            <button class="next-button vote-btn" 
-                                    data-coord-id="{{ coord.id }}" 
-                                    {% if player.has_voted or coord.player == player %}disabled{% endif %}
-                                    {% if coord.player == player %}style="opacity: 0.6; border: 1px dashed #666;"{% endif %}>
-                                
-                                {{ coord.coordinate_name }} ({{ coord.player.nickname }})
-                                
-                                {% if coord.player == player %}
-                                    <span class="self-vote-label">(Ваша координата)</span>
-                                {% else %}
-                                    <span>Голосов: {{ coord.votes }}</span>
-                                {% endif %}
-                            </button>
-                        {% endfor %}
-                        </div>
-                    {% endif %}
-                
-                {% elif game.current_stage == 'results' %}
-                    <h2>Результаты Раунда</h2>
-                    {% if last_visited_coord %}
-                        <div class="role-display {% if last_visited_coord.is_alien_coord %}role-alien{% else %}role-human{% endif %}">
-                            <h3>{{ last_visited_coord.coordinate_name }}</h3>
-                            <p>{{ last_visited_coord.resource_description }}</p>
-                        </div>
-                    {% endif %}
-                    {% if is_host %}<button class="next-button" id="next-stage-btn">Новый Раунд</button>{% endif %}
+                        <div class="sector-card {% if coord.was_visited or player.has_voted or coord.player == player %}disabled{% endif %}" style="position: relative;">
+                             <div class="sector-visual" style="filter: hue-rotate({{ forloop.counter0 }}0deg);"></div>
+                             <div class="sector-name">{{ coord.coordinate_name }}</div>
+                             <div class="sector-owner">{{ coord.player.nickname }}</div>
+                             
+                             {% if coord.votes > 0 %}<div class="vote-count">{{ coord.votes }}</div>{% endif %}
 
-                {% elif game.current_stage == 'game_over' %}
-                    <h2>Игра Окончена!</h2>
-                    <div class="role-display {% if game.game_over_status == 'aliens_win' %}role-alien{% else %}role-human{% endif %}">
-                        <h1>{% if game.game_over_status == 'aliens_win' %}ПОБЕДА ПРИШЕЛЬЦЕВ!{% else %}ПОБЕДА ЛЮДЕЙ!{% endif %}</h1>
+                             {% if coord.was_visited %}
+                                <div class="offline-tag">OFFLINE</div>
+                             {% endif %}
+                             
+                             {% if not player.has_voted and coord.player != player and not coord.was_visited %}
+                                 <div class="vote-overlay">
+                                     <button class="btn-vote action-btn vote-btn" data-coord-id="{{ coord.id }}">ЦЕЛЬ</button>
+                                 </div>
+                             {% endif %}
+                        </div>
+                        {% endfor %}
                     </div>
-                    <a href="{% url 'index' %}" class="next-button" style="text-decoration: none; display: block;">Выйти</a>
-                {% endif %} 
+                    {% if is_host %}<div class="host-actions"><button class="cyber-btn primary action-btn" id="next-stage-btn">Итоги</button></div>{% endif %}
+
+                {% elif game.current_stage == 'results' %}
+                    <div style="display:flex; height:100%; align-items:center; justify-content:center; text-align:center;">
+                        {% if last_visited_coord %}
+                        <div>
+                            <h3>ПРИБЫТИЕ В: {{ last_visited_coord.coordinate_name }}</h3>
+                            <div class="sector-visual" style="margin:20px auto; transform:scale(2);"></div>
+                            <h2 style="color:var(--neon-blue); margin-top:20px;">{{ last_visited_coord.resource_description }}</h2>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if is_host %}<div class="host-actions"><button class="cyber-btn primary action-btn" id="next-stage-btn">След. Раунд</button></div>{% endif %}
+                
+                {% elif game.current_stage == 'game_over' %}
+                    <div style="display:flex; height:100%; align-items:center; justify-content:center; text-align:center;">
+                        <div>
+                            <h1 style="font-size:3rem;">{% if game.game_over_status == 'aliens_win' %}ФЛОТ УНИЧТОЖЕН{% else %}ПОБЕДА{% endif %}</h1>
+                            {% if is_host %}
+                            <div style="margin-top:20px;">
+                                <button class="cyber-btn primary action-btn" id="rematch-btn">НОВАЯ МИССИЯ</button>
+                                <button class="cyber-btn action-btn" id="disband-room-btn" style="border-color:var(--neon-red)">Выход</button>
+                            </div>
+                            {% else %}
+                            <p style="margin-top:20px;">Ожидание решения командования...</p>
+                            <a href="{% url 'index' %}" class="cyber-btn" style="margin-top:10px; display:inline-block; text-decoration:none;">Выход</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
             </div>
         </div>
 
-        <div class="chat-container">
-            <h2>Игровой чат</h2>
+        <div class="comm-link">
+            <div style="padding:15px; text-align:center; border-bottom:1px solid #333; color:var(--neon-purple)">СВЯЗЬ</div>
             <div id="chat-log"></div>
-            <input id="chat-message-input" type="text" placeholder="Написать в чат... (Enter)">
+            <input id="chat-message-input" type="text" placeholder="Сообщение..." autocomplete="off">
         </div>
     </div>
 
@@ -171,65 +245,119 @@
         const roomCode = '{{ game.room_code }}';
         const isHost = {{ is_host|yesno:"true,false" }};
         const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-        const gameSocket = new WebSocket(wsProtocol + window.location.host + '/ws/game/' + roomCode + '/');
+        let gameSocket = null;
+        const statusBar = document.getElementById('status-bar');
 
+        function showStatus(msg, type) {
+            statusBar.textContent = msg;
+            statusBar.className = type === 'error' ? 'status-error' : 'status-connecting';
+            statusBar.style.display = 'block';
+        }
+
+        function toggleButtons(enabled) {
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                btn.disabled = !enabled;
+                btn.style.opacity = enabled ? 1 : 0.5;
+            });
+        }
+
+        function connect() {
+            showStatus('ПОДКЛЮЧЕНИЕ...', 'connecting');
+            toggleButtons(false);
+            gameSocket = new WebSocket(wsProtocol + window.location.host + '/ws/game/' + roomCode + '/');
+
+            gameSocket.onopen = () => { statusBar.style.display='none'; toggleButtons(true); };
+            gameSocket.onclose = () => { showStatus('СВЯЗЬ ПОТЕРЯНА', 'error'); toggleButtons(false); setTimeout(() => window.location.reload(), 2000); };
+            
+            gameSocket.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                
+                // --- МИГРАЦИЯ В НОВУЮ КОМНАТУ ---
+                if (data.type === 'game_migration') {
+                    showStatus('ПЕРЕХОД В НОВЫЙ СЕКТОР...', 'connecting');
+                    window.location.href = data.new_url;
+                    return;
+                }
+
+                if (data.type === 'error_notification') {
+                    showStatus(data.message, 'error');
+                    setTimeout(() => statusBar.style.display='none', 3000);
+                }
+                else if (data.type === 'update_stage' || data.type === 'force_reload') {
+                    window.location.reload();
+                }
+                else if (data.type === 'ability_result') {
+                    const area = document.getElementById(`scan-res-${data.target_id}`);
+                    if (area) {
+                        area.innerHTML = data.is_alien 
+                            ? '<span class="scan-result-badge res-alien">ПРИШЕЛЕЦ ⚠️</span>' 
+                            : '<span class="scan-result-badge res-human">ЧЕЛОВЕК ✅</span>';
+                        document.querySelectorAll('.scan-icon').forEach(icon => icon.style.display = 'none');
+                    }
+                }
+                else if (data.type === 'chat_message') {
+                    const el = document.createElement('div');
+                    el.className = 'msg';
+                    el.innerHTML = data.username === 'Система' ? `<i style="color:#aaa">${data.message}</i>` : `<strong>${data.username}:</strong> ${data.message}`;
+                    const log = document.getElementById('chat-log');
+                    log.appendChild(el);
+                    log.scrollTop = log.scrollHeight;
+                }
+            };
+        }
+
+        function safeSend(data) {
+            if (gameSocket && gameSocket.readyState === WebSocket.OPEN) gameSocket.send(JSON.stringify(data));
+        }
+
+        connect();
+
+        /* --- ЛОГИКА МОДАЛЬНОГО ОКНА --- */
         const modal = document.getElementById('custom-modal');
-        let targetId = null;
+        let scanTargetId = null;
 
-        function askScan(pid, name) {
-            targetId = pid;
-            document.getElementById('modal-title').innerText = `Проверить ${name}?`;
-            modal.style.display = 'block';
+        function openScanModal(pid, name) {
+            scanTargetId = pid;
+            document.getElementById('modal-title').innerText = `ЦЕЛЬ: ${name.toUpperCase()}`;
+            modal.style.display = 'flex';
         }
 
         document.getElementById('modal-cancel').onclick = () => { modal.style.display = 'none'; };
+        
         document.getElementById('modal-confirm').onclick = () => {
-            if (targetId) {
-                gameSocket.send(JSON.stringify({
-                    'type': 'use_ability',
-                    'target_id': targetId
-                }));
-                document.querySelectorAll('.scan-btn-small').forEach(b => b.disabled = true);
+            if (scanTargetId) {
+                safeSend({ 'type': 'use_ability', 'target_id': scanTargetId });
             }
             modal.style.display = 'none';
         };
 
-        gameSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-            if (data.type === 'update_stage') {
-                window.location.reload();
-            }
-            else if (data.type === 'ability_result') {
-                const area = document.getElementById(`scan-area-${targetId}`);
-                if (area) {
-                    area.innerHTML = data.is_alien 
-                        ? '<span class="result-tag tag-danger">ПРИШЕЛЕЦ ⚠️</span>' 
-                        : '<span class="result-tag tag-safe">ЧЕЛОВЕК ✅</span>';
-                }
-            }
-            else if (data.type === 'chat_message') {
-                const el = document.createElement('div');
-                if (data.username === 'Система') el.className = 'system-message';
-                el.innerHTML = data.username === 'Система' ? data.message : `<strong>${data.username}:</strong> ${data.message}`;
-                document.getElementById('chat-log').appendChild(el);
-                document.getElementById('chat-log').scrollTop = document.getElementById('chat-log').scrollHeight;
-            }
-        };
+        /* --- КНОПКИ ХОСТА --- */
+        if (isHost) {
+            const next = document.querySelector('#next-stage-btn');
+            if(next) next.onclick = () => { safeSend({'type': 'next_stage'}); next.disabled=true; };
+            
+            // Кнопка реванша (создать новую комнату)
+            const rematch = document.querySelector('#rematch-btn');
+            if(rematch) rematch.onclick = () => { 
+                safeSend({'type': 'create_rematch'}); 
+                rematch.disabled=true; 
+                rematch.textContent = "СОЗДАНИЕ...";
+            };
 
-        const nextBtn = document.querySelector('#next-stage-btn');
-        if (isHost && nextBtn) {
-            nextBtn.onclick = () => gameSocket.send(JSON.stringify({'type': 'next_stage'}));
+            const disb = document.querySelector('#disband-room-btn');
+            if(disb) disb.onclick = () => { if(confirm('Удалить?')) safeSend({'type': 'disband_room'}); };
         }
 
         document.querySelectorAll('.vote-btn').forEach(btn => {
             btn.onclick = () => {
-                gameSocket.send(JSON.stringify({'type': 'submit_vote', 'coordinate_id': btn.dataset.coordId}));
+                safeSend({'type': 'submit_vote', 'coordinate_id': btn.dataset.coordId});
+                document.querySelectorAll('.vote-btn').forEach(b => b.remove());
             };
         });
 
         document.getElementById('chat-message-input').onkeyup = (e) => {
             if (e.key === 'Enter' && e.target.value.trim()) {
-                gameSocket.send(JSON.stringify({'type': 'chat_message', 'message': e.target.value}));
+                safeSend({'type': 'chat_message', 'message': e.target.value});
                 e.target.value = '';
             }
         };
