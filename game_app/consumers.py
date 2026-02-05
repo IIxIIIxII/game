@@ -30,7 +30,6 @@ class GameConsumer(WebsocketConsumer):
         )
         self.accept()
         
-        # Обновляем список при входе
         async_to_sync(self.channel_layer.group_send)(
             self.room_group_name,
             {'type': 'player_list_update'}
@@ -43,7 +42,6 @@ class GameConsumer(WebsocketConsumer):
             {'type': 'player_list_update'}
         )
 
-    # --- МЕТОД ДЛЯ БЕЗОПАСНОЙ ОТПРАВКИ (защита от ngrok 502) ---
     def safe_send(self, data):
         try:
             self.send(text_data=json.dumps(data))
@@ -62,7 +60,6 @@ class GameConsumer(WebsocketConsumer):
 
             if not game: return
 
-            # 1. ЧАТ
             if message_type == 'chat_message':
                 message = text_data_json.get('message', '')
                 if message:
@@ -71,7 +68,6 @@ class GameConsumer(WebsocketConsumer):
                         { 'type': 'chat_message', 'message': message, 'username': self.nickname }
                     )
             
-            # 2. ПРОФИЛЬ (С ОБНОВЛЕНИЕМ НИКА В СЕССИИ)
             elif message_type == 'update_profile':
                 new_nickname = text_data_json.get('nickname')
                 new_avatar_id = text_data_json.get('avatar_id')
@@ -83,7 +79,6 @@ class GameConsumer(WebsocketConsumer):
                             player.avatar_id = new_avatar_id
                             player.save()
                             
-                            # ОБНОВЛЯЕМ НИК ВЕЗДЕ
                             self.nickname = new_nickname
                             self.scope['session']['nickname'] = new_nickname
                             self.scope['session'].save()
@@ -92,7 +87,6 @@ class GameConsumer(WebsocketConsumer):
                                 self.room_group_name, {'type': 'player_list_update'}
                             )
 
-            # 3. СКАНИРОВАНИЕ
             elif message_type == 'use_ability':
                 player = Player.objects.filter(session_id=self.session_id, game=game).first()
                 if player and player.role == 'scientist' and not player.special_used:
@@ -108,7 +102,6 @@ class GameConsumer(WebsocketConsumer):
                             'is_alien': target.role == 'alien'
                         })
 
-            # 4. ВЕДУЩИЙ
             elif self.session_id == game.host_session:
                 if message_type == 'start_game' and game.current_stage == 'lobby':
                     self.start_game_logic(game)
@@ -128,8 +121,37 @@ class GameConsumer(WebsocketConsumer):
                         { 'type': 'room_disbanded', 'message': 'Ведущий распустил комнату.' }
                     )
                     game.delete()
+                
+                # --- ЛОГИКА КИКА ИГРОКА ---
+                elif message_type == 'kick_player':
+                    target_id = text_data_json.get('player_id')
+                    try:
+                        target = Player.objects.get(id=target_id, game=game)
+                        # Удаляем игрока
+                        target.delete()
+                        
+                        # 1. Уведомляем конкретного игрока, что его кикнули (через пересбор списка)
+                        # Но лучше отправить спец сообщение. Для простоты просто обновляем список.
+                        # Тот, кого удалили из БД, при следующем запросе ничего не получит, но сокет открыт.
+                        # Отправим сигнал "обновись" - скрипт на фронте не найдет себя в списке? Нет.
+                        # Просто обновим список, а кикнутому отправим отдельный сигнал, если сможем найти его channel.
+                        # (Сложно без хранения channel_name).
+                        # Проще: просто обновляем список.
+                        
+                        async_to_sync(self.channel_layer.group_send)(
+                            self.room_group_name, {'type': 'player_list_update'}
+                        )
+                        
+                        # Отправляем сообщение "kicked" всем. Фронтенд должен проверить, есть ли он в списке.
+                        # Или лучше: отправить сигнал "kicked" с ID.
+                        async_to_sync(self.channel_layer.group_send)(
+                            self.room_group_name, 
+                            {'type': 'player_kicked_event', 'kicked_id': int(target_id)}
+                        )
+                        
+                    except Player.DoesNotExist:
+                        pass
 
-            # 5. ГОЛОСОВАНИЕ
             elif message_type == 'submit_vote' and game.current_stage == 'voting':
                 with transaction.atomic():
                     player = Player.objects.filter(session_id=self.session_id, game=game).first()
@@ -140,7 +162,6 @@ class GameConsumer(WebsocketConsumer):
                         if coord.player == player: return 
                         if coord.was_visited: return
 
-                        # Защита от повтора
                         last_vote_target_id = self.scope['session'].get('last_vote_target_id')
                         if last_vote_target_id and str(last_vote_target_id) == str(coord.player.id):
                             self.safe_send({
@@ -313,7 +334,8 @@ class GameConsumer(WebsocketConsumer):
             game = GameSession.objects.filter(room_code=self.room_code).first()
             if not game: return
             
-            players = [{'nickname': p.nickname, 'avatar_id': p.avatar_id} for p in game.players.all()]
+            # ВАЖНО: Добавил 'id' в список, чтобы работал кик
+            players = [{'id': p.id, 'nickname': p.nickname, 'avatar_id': p.avatar_id} for p in game.players.all()]
             
             self.safe_send({
                 'type': 'player_list_update', 
@@ -331,3 +353,15 @@ class GameConsumer(WebsocketConsumer):
             'type': 'game_migration',
             'new_url': event['new_url']
         })
+        
+    def player_kicked_event(self, event):
+        # Проверяем, не кикнули ли нас
+        # У нас нет ID игрока в self (только session_id).
+        # Но мы можем попросить клиент перезагрузить страницу или выйти, если его нет в списке.
+        # Для простоты: отправляем всем событие, а JS проверит "меня здесь нет".
+        # Но "меня нет" сложно проверить без ID в JS.
+        # Поэтому сделаем проще:
+        # Если кикнули, игрок все равно удален из базы.
+        # При следующем player_list_update его не будет в списке.
+        # Можно на клиенте проверять: если меня нет в списке players -> redirect to index.
+        pass

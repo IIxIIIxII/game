@@ -49,6 +49,7 @@
         .vote-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8);
             display: flex; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s;
+            border-radius: 10px;
         }
         .sector-card:not(.disabled):hover .vote-overlay { opacity: 1; }
 
@@ -62,8 +63,26 @@
         .res-human { background: #2ecc71; color: black; box-shadow: 0 0 10px #2ecc71; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .scan-icon { position: absolute; top: 10px; right: 10px; font-size: 1.5rem; cursor: pointer; transition: 0.2s; }
-        .scan-icon:hover { transform: scale(1.2); }
+        /* КНОПКА СКАНИРОВАНИЯ */
+        .btn-scan {
+            width: 100%;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(10, 255, 0, 0.1);
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            font-family: 'Orbitron';
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 0 5px rgba(10, 255, 0, 0.2);
+        }
+        .btn-scan:hover {
+            background: var(--neon-green);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-green);
+        }
 
         .offline-tag { font-family: 'Orbitron'; color: #ff0055; font-weight: bold; border: 1px solid #ff0055; padding: 2px 5px; font-size: 0.7rem; position: absolute; top: 10px; left: 10px; transform: rotate(-15deg); }
 
@@ -86,6 +105,7 @@
             margin: 0 auto;
         }
 
+        /* --- МОДАЛЬНОЕ ОКНО (POPUP) --- */
         #custom-modal { display: none; position: fixed; z-index: 5000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); justify-content: center; align-items: center; }
         .modal-box { 
             background: rgba(20, 20, 35, 0.95); width: 350px; padding: 30px; border-radius: 15px; 
@@ -174,7 +194,7 @@
                                 <div class="sector-visual"></div>
                                 <div class="sector-name">{{ coord.coordinate_name }}</div>
                                 <div class="sector-owner">ВЫ</div>
-                                </div>
+                            </div>
                             {% else %}
                             <div class="sector-card {% if coord.was_visited %}disabled{% endif %}">
                                 <div class="sector-visual" style="filter: hue-rotate({{ forloop.counter0 }}0deg);"></div>
@@ -186,7 +206,7 @@
                                 {% else %}
                                     <div id="scan-res-{{ coord.player.id }}"></div>
                                     {% if player.role == 'scientist' and not player.special_used %}
-                                        <div class="scan-icon action-btn" onclick="openScanModal('{{ coord.player.id }}', '{{ coord.player.nickname }}')">🧬</div>
+                                        <button class="btn-scan" onclick="openScanModal('{{ coord.player.id }}', '{{ coord.player.nickname }}')">ПРОВЕРИТЬ</button>
                                     {% endif %}
                                 {% endif %}
                             </div>
@@ -222,10 +242,12 @@
                 {% elif game.current_stage == 'results' %}
                     <div class="results-container">
                         {% if last_visited_coord %}
-                            <h3 style="color: var(--neon-blue);">ПРОТОКОЛ ПРИБЫТИЯ</h3>
+                            <h3 style="color: var(--neon-blue); margin: 0;">ПРОТОКОЛ ПРИБЫТИЯ</h3>
                             <div class="arrival-visual"></div>
-                            <h1 style="font-family: 'Orbitron'; letter-spacing: 5px; color: #fff;">{{ last_visited_coord.coordinate_name }}</h1>
-                            {% endif %}
+                            <h1 style="font-family: 'Orbitron'; letter-spacing: 5px; color: #fff; margin: 0;">
+                                {{ last_visited_coord.coordinate_name|upper }}
+                            </h1>
+                        {% endif %}
                     </div>
                     {% if is_host %}<div class="host-actions"><button class="cyber-btn primary action-btn" id="next-stage-btn">След. Раунд</button></div>{% endif %}
                 
@@ -305,7 +327,7 @@
                         area.innerHTML = data.is_alien 
                             ? '<span class="scan-result-badge res-alien">ПРИШЕЛЕЦ ⚠️</span>' 
                             : '<span class="scan-result-badge res-human">ЧЕЛОВЕК ✅</span>';
-                        document.querySelectorAll('.scan-icon').forEach(icon => icon.style.display = 'none');
+                        document.querySelectorAll('.btn-scan').forEach(btn => btn.style.display = 'none');
                     }
                 }
                 else if (data.type === 'chat_message') {
@@ -315,6 +337,11 @@
                     const log = document.getElementById('chat-log');
                     log.appendChild(el);
                     log.scrollTop = log.scrollHeight;
+                }
+                // --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
+                else if (data.type === 'game_aborted' || data.type === 'room_disbanded') {
+                    alert(data.message || 'Игра завершена ведущим.');
+                    window.location.href = "{% url 'index' %}";
                 }
             };
         }
