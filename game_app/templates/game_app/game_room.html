@@ -31,13 +31,82 @@
         .comm-link { flex: 1; background: rgba(10, 10, 15, 0.9); border-left: 2px solid var(--neon-purple); border-radius: 15px; display: flex; flex-direction: column; }
 
         h2, h3 { font-family: 'Orbitron', sans-serif; text-transform: uppercase; margin: 0; }
-        .header-panel { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
-        .phase-indicator { color: var(--neon-blue); border: 1px solid var(--neon-blue); padding: 5px 15px; border-radius: 20px; }
+        
+        .header-panel { 
+            padding: 20px; 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            display: grid; 
+            grid-template-columns: 1fr auto 1fr; 
+            align-items: center; 
+        }
+        
+        .phase-indicator { 
+            color: var(--neon-blue); 
+            border: 1px solid var(--neon-blue); 
+            padding: 5px 15px; 
+            border-radius: 20px; 
+            justify-self: end;
+        }
+
+        .menu-wrapper { position: relative; justify-self: start; }
+
+        .menu-btn-trigger {
+            background: transparent;
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 8px 15px;
+            font-family: 'Orbitron';
+            cursor: pointer;
+            border-radius: 5px;
+            transition: 0.3s;
+            font-size: 1.2rem;
+        }
+        .menu-btn-trigger:hover { background: var(--neon-blue); color: #000; }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: rgba(10, 10, 20, 0.95);
+            min-width: 200px;
+            border: 1px solid var(--neon-blue);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+            border-radius: 5px;
+            z-index: 2000;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .dropdown-content button, .dropdown-content a {
+            display: block;
+            width: 100%;
+            padding: 12px 15px;
+            text-align: left;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #333;
+            color: #fff;
+            font-family: 'Rajdhani';
+            font-size: 1rem;
+            text-decoration: none;
+            cursor: pointer;
+            transition: 0.2s;
+            box-sizing: border-box;
+        }
+
+        .dropdown-content button:hover, .dropdown-content a:hover {
+            background: rgba(0, 243, 255, 0.1);
+            color: var(--neon-blue);
+            padding-left: 20px;
+        }
+        .show-menu { display: block; }
 
         .galaxy-map { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 30px; overflow-y: auto; height: 100%; }
 
         .sector-card {
             background: rgba(20, 25, 40, 0.8); border: 1px solid #444; border-radius: 10px; padding: 20px; text-align: center; position: relative; transition: 0.3s;
+            display: flex; flex-direction: column; justify-content: space-between;
         }
         .sector-card:not(.disabled):hover { transform: translateY(-5px); border-color: var(--neon-blue); box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); }
         .sector-card.disabled { opacity: 0.5; filter: grayscale(80%); border-color: #333; background: rgba(0,0,0,0.5); pointer-events: none; }
@@ -58,65 +127,33 @@
         
         .vote-count { position: absolute; top: 10px; right: 10px; background: #fff; color: #000; border-radius: 50%; width: 25px; height: 25px; line-height: 25px; font-weight: bold; }
 
-        .scan-result-badge { display: inline-block; padding: 5px 10px; border-radius: 5px; font-weight: bold; margin-top: 5px; font-size: 0.9rem; animation: fadeIn 0.5s; }
-        .res-alien { background: #e74c3c; color: white; box-shadow: 0 0 10px #e74c3c; }
-        .res-human { background: #2ecc71; color: black; box-shadow: 0 0 10px #2ecc71; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        /* КНОПКА СКАНИРОВАНИЯ */
         .btn-scan {
-            width: 100%;
-            margin-top: 15px;
-            padding: 10px;
-            background: rgba(10, 255, 0, 0.1);
-            border: 1px solid var(--neon-green);
-            color: var(--neon-green);
-            font-family: 'Orbitron';
-            font-weight: bold;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: 0.3s;
-            box-shadow: 0 0 5px rgba(10, 255, 0, 0.2);
+            width: 100%; margin-top: 15px; padding: 10px; background: rgba(10, 255, 0, 0.1); border: 1px solid var(--neon-green); color: var(--neon-green);
+            font-family: 'Orbitron'; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.3s; box-shadow: 0 0 5px rgba(10, 255, 0, 0.2);
         }
-        .btn-scan:hover {
-            background: var(--neon-green);
-            color: #000;
-            box-shadow: 0 0 20px var(--neon-green);
-        }
+        .btn-scan:hover { background: var(--neon-green); color: #000; box-shadow: 0 0 20px var(--neon-green); }
 
         .offline-tag { font-family: 'Orbitron'; color: #ff0055; font-weight: bold; border: 1px solid #ff0055; padding: 2px 5px; font-size: 0.7rem; position: absolute; top: 10px; left: 10px; transform: rotate(-15deg); }
-
-        .results-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            text-align: center;
-            gap: 20px;
-        }
-
+        
+        .results-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 30px; }
         .arrival-visual {
-            width: 150px;
-            height: 150px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, var(--neon-blue), #004e52);
-            box-shadow: 0 0 50px rgba(0, 243, 255, 0.3);
-            margin: 0 auto;
+            width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, var(--neon-blue), #004e52);
+            box-shadow: 0 0 60px rgba(0, 243, 255, 0.4); flex-shrink: 0;
         }
 
-        /* --- МОДАЛЬНОЕ ОКНО (POPUP) --- */
-        #custom-modal { display: none; position: fixed; z-index: 5000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); justify-content: center; align-items: center; }
+        #custom-modal, #rules-modal { display: none; position: fixed; z-index: 5000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); justify-content: center; align-items: center; }
         .modal-box { 
-            background: rgba(20, 20, 35, 0.95); width: 350px; padding: 30px; border-radius: 15px; 
+            background: rgba(20, 20, 35, 0.95); width: 500px; padding: 30px; border-radius: 15px; 
             border: 2px solid var(--neon-blue); text-align: center; box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
-            animation: slideDown 0.3s;
+            animation: slideDown 0.3s; max-height: 85vh; overflow-y: auto;
         }
         @keyframes slideDown { from {transform: translateY(-50px); opacity: 0;} to {transform: translateY(0); opacity: 1;} }
         
         .modal-box h3 { color: var(--neon-blue); margin-bottom: 15px; }
-        .modal-box p { margin-bottom: 25px; font-size: 1.1rem; }
-        
+        .modal-box p { margin-bottom: 15px; font-size: 1.1rem; line-height: 1.5; color: #ddd; }
+        .modal-box ul { text-align: left; margin-bottom: 20px; list-style-position: inside; }
+        .modal-box li { margin-bottom: 8px; }
+
         .modal-btns { display: flex; gap: 15px; justify-content: center; }
         .m-btn { 
             flex: 1; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; text-transform: uppercase; transition: 0.2s;
@@ -157,10 +194,41 @@
         </div>
     </div>
 
+    <div id="rules-modal">
+        <div class="modal-box">
+            <h3>ПРАВИЛА ИГРЫ</h3>
+            <div style="text-align: left; margin-bottom: 20px;">
+                <p>В игре участвуют 3–7 игроков и один Ведущий.</p>
+                <ul>
+                    <li><strong>Люди:</strong> Цель — несколько раз подряд выбрать безопасные координаты и не попасть к Пришельцам.</li>
+                    <li><strong>Пришельцы:</strong> Цель — хотя бы один раз привести команду на свою координату.</li>
+                    <li><strong>Ученый:</strong> Один раз за игру может узнать роль любого игрока (появляется при 6-7 игроках).</li>
+                </ul>
+                <p>Каждый раунд игроки обсуждают свои координаты и голосуют, куда летит корабль.</p>
+                <p>Игра идёт до победы Людей или Пришельцев.</p>
+            </div>
+            <button class="m-btn m-cancel" onclick="document.getElementById('rules-modal').style.display='none'">ЗАКРЫТЬ</button>
+        </div>
+    </div>
+
     <div class="page-layout">
         <div class="game-interface">
             <div class="header-panel">
-                <h2>Сектор: {{ game.room_code }}</h2>
+                <div class="menu-wrapper">
+                    <button class="menu-btn-trigger" onclick="toggleMenu()">☰ МЕНЮ</button>
+                    <div id="dropdown-menu" class="dropdown-content">
+                        <button onclick="document.getElementById('rules-modal').style.display='flex'">📜 Правила</button>
+                        
+                        <button onclick="leaveGame()">🚪 Выйти</button>
+                        
+                        {% if is_host %}
+                        <button style="color: var(--neon-red);" onclick="disbandRoom()">💥 Распустить лобби</button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <h2 style="text-align: center;">Сектор: {{ game.room_code }}</h2>
+                
                 <div class="phase-indicator">
                     {% if game.current_stage == 'roles' %}БРИФИНГ
                     {% elif game.current_stage == 'coordinates' %}РАЗВЕДКА
@@ -171,7 +239,7 @@
                 </div>
             </div>
 
-            <div style="flex:1; overflow-y:auto; position: relative;">
+            <div style="flex:1; overflow-y:auto; position: relative;" onclick="closeMenuIfOpen(event)">
                 
                 {% if game.current_stage == 'roles' %}
                     <div style="display:flex; height:100%; align-items:center; justify-content:center; flex-direction:column; text-align:center;">
@@ -182,7 +250,15 @@
                             <h1 style="font-size:3rem; color: {% if player.role == 'human' %}var(--neon-green){% elif player.role == 'alien' %}var(--neon-red){% else %}var(--neon-blue){% endif %}">
                                 {{ player.get_role_display|upper }}
                             </h1>
-                            <p>{% if player.role == 'human' %}Цель: Выжить.{% elif player.role == 'alien' %}Цель: Уничтожить.{% elif player.role == 'scientist' %}Оборудование: Био-сканер.{% endif %}</p>
+                            <p style="font-size: 1.2rem; max-width: 600px; margin-top: 15px;">
+                                {% if player.role == 'human' %}
+                                    <strong>ВАША ЦЕЛЬ:</strong> Убедить команду выбрать безопасные координаты {{ game.human_coords_to_win }} раз(а). Не дайте выбрать координату пришельца!
+                                {% elif player.role == 'alien' %}
+                                    <strong>ВАША ЦЕЛЬ:</strong> Обмануть команду и заставить их выбрать ВАШ сектор (ловушку) хотя бы один раз.
+                                {% elif player.role == 'scientist' %}
+                                    <strong>ВАША ЦЕЛЬ:</strong> Вычислить Пришельцев. У вас есть сканер, чтобы проверить одного игрока. Помогите Людям победить.
+                                {% endif %}
+                            </p>
                         {% endif %}
                     </div>
 
@@ -279,6 +355,10 @@
 
     <script>
         const roomCode = '{{ game.room_code }}';
+        
+        // СОХРАНЯЕМ ССЫЛКУ ДЛЯ ВЫХОДА В ПЕРЕМЕННУЮ JS
+        const leaveUrl = "{% url 'leave_game' game.room_code %}";
+        
         const isHost = {{ is_host|yesno:"true,false" }};
         const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
         let gameSocket = null;
@@ -338,7 +418,6 @@
                     log.appendChild(el);
                     log.scrollTop = log.scrollHeight;
                 }
-                // --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
                 else if (data.type === 'game_aborted' || data.type === 'room_disbanded') {
                     alert(data.message || 'Игра завершена ведущим.');
                     window.location.href = "{% url 'index' %}";
@@ -370,6 +449,31 @@
             modal.style.display = 'none';
         };
 
+        // --- УПРАВЛЕНИЕ МЕНЮ ---
+        function toggleMenu() {
+            document.getElementById('dropdown-menu').classList.toggle('show-menu');
+        }
+        
+        function closeMenuIfOpen(e) {
+            const dropdown = document.getElementById('dropdown-menu');
+            if (dropdown.classList.contains('show-menu')) {
+                dropdown.classList.remove('show-menu');
+            }
+        }
+
+        // --- НОВАЯ ФУНКЦИЯ ВЫХОДА ---
+        function leaveGame() {
+            if (confirm('Выйти из игры? Ваш персонаж останется в игре, но вы потеряете управление.')) {
+                window.location.href = leaveUrl;
+            }
+        }
+
+        function disbandRoom() {
+            if (confirm('Вы уверены? Это выкинет всех игроков.')) {
+                safeSend({'type': 'disband_room'});
+            }
+        }
+
         if (isHost) {
             const next = document.querySelector('#next-stage-btn');
             if(next) next.onclick = () => { safeSend({'type': 'next_stage'}); next.disabled=true; };
@@ -382,7 +486,7 @@
             };
 
             const disb = document.querySelector('#disband-room-btn');
-            if(disb) disb.onclick = () => { if(confirm('Удалить?')) safeSend({'type': 'disband_room'}); };
+            if(disb) disb.onclick = () => { disbandRoom(); };
         }
 
         document.querySelectorAll('.vote-btn').forEach(btn => {

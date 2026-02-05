@@ -122,33 +122,20 @@ class GameConsumer(WebsocketConsumer):
                     )
                     game.delete()
                 
-                # --- ЛОГИКА КИКА ИГРОКА ---
                 elif message_type == 'kick_player':
                     target_id = text_data_json.get('player_id')
                     try:
                         target = Player.objects.get(id=target_id, game=game)
-                        # Удаляем игрока
                         target.delete()
-                        
-                        # 1. Уведомляем конкретного игрока, что его кикнули (через пересбор списка)
-                        # Но лучше отправить спец сообщение. Для простоты просто обновляем список.
-                        # Тот, кого удалили из БД, при следующем запросе ничего не получит, но сокет открыт.
-                        # Отправим сигнал "обновись" - скрипт на фронте не найдет себя в списке? Нет.
-                        # Просто обновим список, а кикнутому отправим отдельный сигнал, если сможем найти его channel.
-                        # (Сложно без хранения channel_name).
-                        # Проще: просто обновляем список.
                         
                         async_to_sync(self.channel_layer.group_send)(
                             self.room_group_name, {'type': 'player_list_update'}
                         )
                         
-                        # Отправляем сообщение "kicked" всем. Фронтенд должен проверить, есть ли он в списке.
-                        # Или лучше: отправить сигнал "kicked" с ID.
                         async_to_sync(self.channel_layer.group_send)(
                             self.room_group_name, 
                             {'type': 'player_kicked_event', 'kicked_id': int(target_id)}
                         )
-                        
                     except Player.DoesNotExist:
                         pass
 
@@ -283,6 +270,7 @@ class GameConsumer(WebsocketConsumer):
             async_to_sync(self.channel_layer.group_send)(self.room_group_name, {'type': 'update_game_stage'})
 
     def create_rematch_logic(self, old_game):
+        new_url = None
         try:
             with transaction.atomic():
                 new_room_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -291,20 +279,27 @@ class GameConsumer(WebsocketConsumer):
                     room_code=new_room_code,
                     current_stage='lobby'
                 )
-                players = list(old_game.players.all())
-                for player in players:
+                
+                # ВАЖНО: Фильтруем "призраков" по метке LEFT-
+                active_players = Player.objects.filter(game=old_game).exclude(session_id__startswith='LEFT-')
+                
+                for player in active_players:
                     player.game = new_game
                     player.role = None
                     player.has_voted = False
                     player.special_used = False
                     player.save()
+                
                 old_game.delete()
+                
+                new_url = reverse('game_lobby', kwargs={'room_code': new_room_code})
             
-            new_url = reverse('game_lobby', kwargs={'room_code': new_room_code})
-            async_to_sync(self.channel_layer.group_send)(
-                self.room_group_name, 
-                {'type': 'game_migration', 'new_url': new_url}
-            )
+            # ВАЖНО: Отправляем сигнал ПОСЛЕ завершения транзакции БД
+            if new_url:
+                async_to_sync(self.channel_layer.group_send)(
+                    self.room_group_name, 
+                    {'type': 'game_migration', 'new_url': new_url}
+                )
         except Exception as e:
             print(f"Migration Error: {e}")
 
@@ -334,7 +329,6 @@ class GameConsumer(WebsocketConsumer):
             game = GameSession.objects.filter(room_code=self.room_code).first()
             if not game: return
             
-            # ВАЖНО: Добавил 'id' в список, чтобы работал кик
             players = [{'id': p.id, 'nickname': p.nickname, 'avatar_id': p.avatar_id} for p in game.players.all()]
             
             self.safe_send({
@@ -355,13 +349,4 @@ class GameConsumer(WebsocketConsumer):
         })
         
     def player_kicked_event(self, event):
-        # Проверяем, не кикнули ли нас
-        # У нас нет ID игрока в self (только session_id).
-        # Но мы можем попросить клиент перезагрузить страницу или выйти, если его нет в списке.
-        # Для простоты: отправляем всем событие, а JS проверит "меня здесь нет".
-        # Но "меня нет" сложно проверить без ID в JS.
-        # Поэтому сделаем проще:
-        # Если кикнули, игрок все равно удален из базы.
-        # При следующем player_list_update его не будет в списке.
-        # Можно на клиенте проверять: если меня нет в списке players -> redirect to index.
         pass

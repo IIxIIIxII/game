@@ -31,7 +31,6 @@ def index(request):
             request.session['nickname'] = nickname
             request.session['avatar_id'] = avatar_id
             
-            # Определяем действие
             action = request.POST.get('action')
             if action == 'create':
                 return create_game(request)
@@ -53,11 +52,7 @@ def create_game(request):
         messages.error(request, "Нужно выбрать ник и аватар!")
         return redirect('index')
 
-    # Создаем игру
     game = GameSession.objects.create(host_session=session_id)
-    
-    # ВЕДУЩИЙ НЕ СОЗДАЕТСЯ КАК ИГРОК - только как хост сессии
-
     return redirect('game_lobby', room_code=game.room_code)
 
 def join_game(request):
@@ -73,7 +68,6 @@ def join_game(request):
     try:
         game = GameSession.objects.get(room_code=room_code)
         
-        # Проверяем, не является ли пользователь ведущим этой игры
         if session_id == game.host_session:
             messages.error(request, "Вы уже являетесь ведущим этой игры!")
             return redirect('index')
@@ -86,14 +80,12 @@ def join_game(request):
             messages.error(request, "Игра уже началась!")
             return redirect('index')
 
-        # Создаем игрока (только для обычных игроков, не для ведущего)
         Player.objects.get_or_create(
             session_id=session_id,
             game=game,
             defaults={'nickname': nickname, 'avatar_id': avatar_id}
         )
         
-        # Уведомляем через WebSocket об обновлении списка игроков
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
             f'game_{game.room_code}',
@@ -106,38 +98,22 @@ def join_game(request):
         messages.error(request, "Комната с таким кодом не найдена!")
         return redirect('index')
 
-# game_app/views.py
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-# Убедись, что все нужные импорты есть вверху файла
-from .models import GameSession, Player
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
-
-# ... (остальные твои view: index, create_game, join_game) ...
-
 def game_lobby(request, room_code):
     session_id = request.session.get('session_id')
     game = get_object_or_404(GameSession, room_code=room_code)
 
-    # --- ВОТ ДОБАВЛЕННАЯ ПРОВЕРКА ---
-    # Если игра уже НЕ в лобби, сразу перекидываем в игровую комнату
     if game.current_stage != 'lobby':
-        # Неважно, хост ты или игрок, если игра идет - тебе в game_room
         return redirect('game_room', room_code=game.room_code)
-    # --- КОНЕЦ ПРОВЕРКИ ---
 
-    players = game.players.all()  # Только обычные игроки, без ведущего
+    players = game.players.all()
     
     is_host = (session_id == game.host_session)
     current_player = players.filter(session_id=session_id).first()
     
-    # Если пользователь не ведущий и не игрок, отправляем на главную
     if not is_host and not current_player:
         messages.error(request, "Вы не состоите в этой игре.")
         return redirect('index')
     
-    # Обработка изменения данных в лобби (POST-запросы)
     if request.method == "POST":
         action = request.POST.get('action')
         
@@ -146,17 +122,14 @@ def game_lobby(request, room_code):
             new_avatar_id = request.POST.get('avatar_id')
             
             if new_nickname and new_avatar_id:
-                # Обновляем данные в сессии
                 request.session['nickname'] = new_nickname
                 request.session['avatar_id'] = new_avatar_id
                 
-                # Если это игрок (не ведущий), обновляем данные в базе
                 if current_player:
                     current_player.nickname = new_nickname
                     current_player.avatar_id = new_avatar_id
                     current_player.save()
                     
-                    # Уведомляем всех об обновлении списка игроков
                     channel_layer = get_channel_layer()
                     async_to_sync(channel_layer.group_send)(
                         f'game_{game.room_code}',
@@ -164,18 +137,14 @@ def game_lobby(request, room_code):
                     )
                 
                 messages.success(request, "Данные успешно обновлены!")
-                # Перезагружаем страницу, чтобы показать обновленные данные
                 return redirect('game_lobby', room_code=room_code)
         
         elif action == 'delete_room' and is_host:
-            # Удаляем комнату (игру)
-            
-            # Сначала уведомляем всех игроков, что комната удалена (опционально)
             channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
                  f'game_{game.room_code}',
                  {
-                      'type': 'game_aborted', # Используем тот же тип, что и при дисконнекте хоста
+                      'type': 'game_aborted',
                       'message': 'Ведущий удалил комнату.'
                  }
             )
@@ -184,7 +153,6 @@ def game_lobby(request, room_code):
             messages.success(request, "Комната успешно удалена!")
             return redirect('index')
 
-    # Готовим данные для отображения страницы (GET-запрос или после POST без редиректа)
     context = {
         'game': game,
         'players': players,
@@ -194,7 +162,6 @@ def game_lobby(request, room_code):
         'current_avatar_id': request.session.get('avatar_id', '1'),
     }
     return render(request, 'game_app/lobby.html', context)
-
 
 def game_room(request, room_code):
     session_id = request.session.get('session_id')
@@ -229,7 +196,24 @@ def leave_game(request, room_code):
     session_id = request.session.get('session_id')
     try:
         game = GameSession.objects.get(room_code=room_code)
-        Player.objects.filter(session_id=session_id, game=game).delete()
+        player = Player.objects.filter(session_id=session_id, game=game).first()
+
+        if player:
+            if game.current_stage == 'lobby':
+                player.delete()
+            else:
+                # ВАЖНО: Формат "LEFT-ID" для надежной фильтрации
+                player.session_id = f"LEFT-{player.id}"
+                player.save()
+
+        # Очищаем только привязку к комнате, ник и аву оставляем
+        keys_to_remove = ['room_code', 'is_host']
+        for key in keys_to_remove:
+            if key in request.session:
+                del request.session[key]
+
+        request.session.modified = True
+
     except (GameSession.DoesNotExist, Player.DoesNotExist):
         pass
 
