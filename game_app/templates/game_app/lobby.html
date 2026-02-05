@@ -2,23 +2,57 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Лобби {{ game.room_code }}</title>
+<title>Лобби</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 <style>
-/* ... ВАШИ СТАРЫЕ СТИЛИ ... */
-body { font-family: sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
-.lobby-container { max-width: 800px; margin: auto; background: #1f1f3d; padding: 20px; border-radius: 10px; }
-h1 { color: #a942e0; border-bottom: 2px solid #a942e0; padding-bottom: 10px; }
-h1 span { font-size: 1.2rem; background: #444; padding: 5px 10px; border-radius: 5px; }
-.content-wrapper { display: flex; gap: 20px; margin-top: 20px; }
-.player-list-section { flex: 2; }
-.profile-section { flex: 1; background: #2f2f4d; padding: 20px; border-radius: 10px; }
-.player-list { list-style: none; padding: 0; }
+/* --- БАЗОВЫЕ СТИЛИ --- */
+body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
+.lobby-container { max-width: 900px; margin: auto; background: #1f1f3d; padding: 25px; border-radius: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
 
-/* ОБНОВЛЕННЫЙ СТИЛЬ ДЛЯ ЭЛЕМЕНТА СПИСКА */
-.player-item { display: flex; align-items: center; background: #2f2f4d; padding: 10px; border-radius: 5px; margin-bottom: 10px; justify-content: space-between; }
+/* ЗАГОЛОВОК */
+h1 { 
+    color: #a942e0; 
+    border-bottom: 2px solid #a942e0; 
+    padding-bottom: 10px; 
+    margin-bottom: 20px;
+    /* Убрал flex, так как теперь тут только текст */
+}
+
+/* СЕТКА (CSS Fixes) */
+.content-wrapper { 
+    display: flex; 
+    gap: 25px; 
+    margin-top: 20px; 
+    align-items: flex-start; /* Чтобы колонки не растягивались на всю высоту */
+    flex-wrap: wrap; /* Чтобы на маленьких экранах переносилось */
+}
+
+.player-list-section { 
+    flex: 2; 
+    min-width: 300px; /* Минимальная ширина, чтобы не сжималось */
+}
+
+.profile-section { 
+    flex: 1; 
+    background: #2f2f4d; 
+    padding: 20px; 
+    border-radius: 10px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 20px; 
+    min-width: 280px;
+}
+
+/* СПИСОК ИГРОКОВ */
+.player-list { list-style: none; padding: 0; margin: 0; }
+.player-item { display: flex; align-items: center; background: #282846; padding: 10px 15px; border-radius: 8px; margin-bottom: 10px; justify-content: space-between; border: 1px solid #3e3e5e; transition: 0.2s; }
+.player-item:hover { border-color: #a942e0; }
+
 .player-info-container { display: flex; align-items: center; }
+.player-avatar { width: 45px; height: 45px; border-radius: 50%; margin-right: 15px; border: 2px solid #555; }
+.player-name { font-size: 1.1rem; font-weight: bold; }
 
-.player-avatar { width: 50px; height: 50px; border-radius: 50%; margin-right: 15px; border: 2px solid #555; }
+/* ЦВЕТА АВАТАРОВ */
 .player-avatar[data-id="1"], .profile-avatar[data-id="1"] { background-color: #e74c3c !important; }
 .player-avatar[data-id="2"], .profile-avatar[data-id="2"] { background-color: #3498db !important; }
 .player-avatar[data-id="3"], .profile-avatar[data-id="3"] { background-color: #2ecc71 !important; }
@@ -27,130 +61,256 @@ h1 span { font-size: 1.2rem; background: #444; padding: 5px 10px; border-radius:
 .player-avatar[data-id="6"], .profile-avatar[data-id="6"] { background-color: #1abc9c !important; }
 .player-avatar[data-id="7"], .profile-avatar[data-id="7"] { background-color: #e67e22 !important; }
 .player-avatar[data-id="8"], .profile-avatar[data-id="8"] { background-color: #ecf0f1 !important; }
-.player-avatar[data-id="9"], .profile-avatar[data-id="10"] { background-color: #7f8c8d !important; }
-.player-avatar[data-id="10"], .profile-avatar[data-id="10"] { background-color: #34495e !important; }
+.player-avatar[data-id="9"], .profile-avatar[data-id="9"] { background-color: #7f8c8d !important; }
+.player-avatar[data-id="0"], .profile-avatar[data-id="0"] { background-color: #34495e !important; }
 
-.player-name { font-size: 1.2rem; font-weight: bold; }
+/* КНОПКИ ХОСТА */
 .host-controls { margin-top: 20px; text-align: center; }
-.start-button { padding: 15px 30px; background: #2ecc71; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px; width: 100%; margin-bottom: 10px; }
-.start-button:disabled { background: #555; cursor: not-allowed; }
-.delete-room-button, .leave-button { padding: 10px 20px; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; transition: background 0.2s; text-align: center; }
-.delete-room-button { background: #e74c3c; margin-top: 10px; }
+.start-button { padding: 15px; background: #2ecc71; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1rem; width: 100%; font-weight: bold; transition: 0.2s; }
+.start-button:hover:not(:disabled) { background: #27ae60; transform: scale(1.02); }
+.start-button:disabled { background: #444; cursor: not-allowed; opacity: 0.7; }
+
+.delete-room-button { background: #e74c3c; margin-top: 10px; width: 100%; padding: 10px; border: none; border-radius: 5px; color: white; cursor: pointer; }
 .delete-room-button:hover { background: #c0392b; }
-.leave-button { background: #7f8c8d; margin-top: 10px; text-decoration: none; display: inline-block; box-sizing: border-box; }
-.leave-button:hover { background: #636e72; }
-.player-warning { margin-top: 20px; background: #f1c40f; color: #1a1a2e; padding: 15px; border-radius: 5px; text-align: center; }
+
+.leave-button { background: #e74c3c; margin-top: 10px; text-decoration: none; display: block; padding: 10px; text-align: center; border-radius: 5px; color: white; }
+.leave-button:hover { background: #c0392b; }
+
+/* ПРОФИЛЬ */
 .avatar-picker { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 15px 0; }
 .profile-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #555; cursor: pointer; transition: all 0.2s; }
 .profile-avatar.selected { border-color: #a942e0; box-shadow: 0 0 10px #a942e0; transform: scale(1.1); }
-.input-group { margin-bottom: 15px; }
-input[type="text"] { width: 100%; padding: 10px; box-sizing: border-box; background: #1f1f3d; border: 1px solid #555; color: white; border-radius: 5px; }
-.update-button { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
-.update-button:hover { background: #2980b9; }
-.host-info { background: #8e44ad; padding: 10px; border-radius: 5px; margin-bottom: 15px; text-align: center; }
-#save-status { font-size: 0.8rem; text-align: center; margin-top: 5px; display: none; }
 
-/* СТИЛЬ ДЛЯ КНОПКИ КИКА */
-.kick-btn {
-    background: transparent;
-    border: 1px solid #e74c3c;
-    color: #e74c3c;
-    border-radius: 5px;
-    padding: 5px 10px;
-    cursor: pointer;
+input[type="text"] { width: 100%; padding: 12px; background: #1f1f3d; border: 1px solid #555; color: white; border-radius: 5px; outline: none; box-sizing: border-box; }
+input[type="text"]:focus { border-color: #a942e0; }
+
+.update-button { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+.update-button:hover { background: #2980b9; }
+
+#save-status { font-size: 0.8rem; text-align: center; margin-top: 5px; color: #2ecc71; display: none; }
+.kick-btn { background: transparent; border: 1px solid #e74c3c; color: #e74c3c; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+.kick-btn:hover { background: #e74c3c; color: white; }
+
+/* --- СТИЛИ ДЛЯ БЛОКА КОДА --- */
+.room-code-modern {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #151525;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 10px 15px;
+    /* убрал margin-top чтобы не ломало верстку */
+    position: relative;
+}
+
+.code-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.code-label {
+    font-size: 0.7rem;
+    color: #777;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+
+.code-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.8rem;
     font-weight: bold;
+    color: #a942e0;
+    letter-spacing: 3px;
+    /* min-width позволяет коду не прыгать при смене на звездочки */
+    min-width: 130px; 
+}
+
+.code-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.icon-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: 0.2s;
+    opacity: 0.6;
 }
-.kick-btn:hover {
-    background: #e74c3c;
-    color: white;
+
+.icon-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    opacity: 1;
 }
+
+.icon-svg {
+    width: 22px;
+    height: 22px;
+    fill: #ddd;
+}
+
+#copy-feedback {
+    position: absolute;
+    bottom: -25px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #2ecc71;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
 </style>
 </head>
 <body>
 
 <div class="lobby-container">
-<h1>Лобби <span>{{ game.room_code }}</span></h1>
-{% if is_host %}
-<div class="host-info">
-<strong>Вы - Ведущий этой игры</strong>
-</div>
-{% endif %}
+    <h1>Лобби</h1>
 
-<hr style="border-color: #444;">
-
-<div class="content-wrapper">
-<div class="player-list-section">
-<h2 id="player-count-header">Игроки ({{ player_count }}/7)</h2>
-<ul class="player-list" id="player-list-ul">
-{% for player in players %}
-<li class="player-item">
-    <div class="player-info-container">
-        <div class="player-avatar" data-id="{{ player.avatar_id }}"></div>
-        <span class="player-name">{{ player.nickname }}</span>
-    </div>
-    
     {% if is_host %}
-        <button class="kick-btn" onclick="kickPlayer('{{ player.id }}', '{{ player.nickname }}')">❌</button>
+    <div style="background: rgba(142, 68, 173, 0.2); border: 1px solid #8e44ad; padding: 10px; border-radius: 5px; text-align: center; margin-bottom: 20px;">
+        👑 Вы - Ведущий этой игры
+    </div>
     {% endif %}
-</li>
-{% endfor %}
-</ul>
 
-{% if is_host %}
-<div class="host-controls" id="host-controls-div">
-<button type="button" class="start-button" id="start-game-btn" {% if player_count < 3 %}disabled{% endif %}>
-Начать игру
-</button>
-<p id="host-message">
-{% if player_count < 3 %}
-Нужно минимум 3 игрока для старта (у вас {{ player_count }}).
-{% else %}
-Готово к старту (игроков: {{ player_count }}).
-{% endif %}
-</p>
-<form method="post" action="{% url 'index' %}">
-{% csrf_token %}
-<input type="hidden" name="action" value="delete_room">
-<button type="submit" class="delete-room-button" onclick="return confirm('Вы уверены, что хотите распустить комнату?')">
-Распустить комнату (Выйти)
-</button>
-</form>
-</div>
-{% else %}
-<div class="player-warning">
-<h4>Ожидание...</h4>
-<p>Ведущий скоро начнет игру.</p>
-<a href="{% url 'leave_game' game.room_code %}" class="leave-button" onclick="return confirm('Вы уверены, что хотите покинуть лобби?')">Покинуть лобби</a>
-</div>
-{% endif %}
+    <div class="content-wrapper">
+        <div class="player-list-section">
+            <h2 id="player-count-header" style="margin-top:0;">Игроки ({{ player_count }}/7)</h2>
+            <ul class="player-list" id="player-list-ul">
+                {% for player in players %}
+                <li class="player-item">
+                    <div class="player-info-container">
+                        <div class="player-avatar" data-id="{{ player.avatar_id }}"></div>
+                        <span class="player-name">{{ player.nickname }}</span>
+                    </div>
+                    
+                    {% if is_host %}
+                        <button class="kick-btn" onclick="kickPlayer('{{ player.id }}', '{{ player.nickname }}')">❌</button>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+
+            {% if is_host %}
+            <div class="host-controls" id="host-controls-div">
+                <button type="button" class="start-button" id="start-game-btn" {% if player_count < 3 %}disabled{% endif %}>
+                    Начать игру
+                </button>
+                <p id="host-message">
+                {% if player_count < 3 %}
+                Нужно минимум 3 игрока для старта (у вас {{ player_count }}).
+                {% else %}
+                Готово к старту (игроков: {{ player_count }}).
+                {% endif %}
+                </p>
+                <form method="post" action="{% url 'index' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete_room">
+                    <button type="submit" class="delete-room-button" onclick="return confirm('Вы уверены, что хотите распустить комнату?')">
+                    Распустить комнату (Выйти)
+                    </button>
+                </form>
+            </div>
+            {% else %}
+            <div class="player-warning">
+                <h4>Ожидание...</h4>
+                <p>Ведущий скоро начнет игру.</p>
+                <a href="{% url 'leave_game' game.room_code %}" class="leave-button" onclick="return confirm('Вы уверены, что хотите покинуть лобби?')">Покинуть лобби</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="profile-section">
+            <h3 style="margin-top: 0; margin-bottom: 15px;">Ваш профиль</h3>
+            <form class="profile-form" id="profile-update-form">
+                <div class="avatar-picker">
+                    {% for i in "1234567890"|make_list %}
+                    <div class="profile-avatar {% if current_avatar_id == i %}selected{% endif %}" data-id="{{ i }}"></div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" id="avatar_id_input" value="{{ current_avatar_id }}">
+
+                <div class="input-group">
+                    <input type="text" id="nickname_input" placeholder="Введите ваш ник" value="{{ current_nickname }}" required maxlength="15">
+                </div>
+
+                <button type="submit" class="update-button">Сохранить изменения</button>
+                <div id="save-status">Сохранено!</div>
+            </form>
+
+            <div class="room-code-modern">
+                <div class="code-content">
+                    <span class="code-label">КОД КОМНАТЫ</span>
+                    <span id="main-code" class="code-value">******</span>
+                </div>
+                
+                <div class="code-actions">
+                    <button class="icon-btn" onclick="toggleCode()" title="Показать/Скрыть" id="eye-btn">
+                        <svg class="icon-svg" viewBox="0 0 24 24" id="eye-icon">
+                            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                        </svg>
+                    </button>
+                    
+                    <button class="icon-btn" onclick="copyCode()" title="Скопировать">
+                        <svg class="icon-svg" viewBox="0 0 24 24">
+                            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div id="copy-feedback">Скопировано!</div>
+            </div>
+
+        </div>
+    </div>
 </div>
 
-<div class="profile-section">
-<h3>Ваш профиль</h3>
-<form class="profile-form" id="profile-update-form">
-<div class="avatar-picker">
-{% for i in "1234567890"|make_list %}
-<div class="profile-avatar {% if current_avatar_id == i %}selected{% endif %}" data-id="{{ i }}"></div>
-{% endfor %}
-</div>
-<input type="hidden" id="avatar_id_input" value="{{ current_avatar_id }}">
-
-<div class="input-group">
-<input type="text" id="nickname_input" placeholder="Введите ваш ник" value="{{ current_nickname }}" required maxlength="15">
-</div>
-
-<button type="submit" class="update-button">Сохранить изменения</button>
-<div id="save-status">Сохранено!</div>
-</form>
-<div style="margin-top: 20px; padding: 15px; background: #1a1a2e; border-radius: 5px;">
-<h4>Код комнаты:</h4>
-<p style="font-size: 24px; font-weight: bold; text-align: center; color: #a942e0;">{{ game.room_code }}</p>
-</div>
-</div>
-</div>
-</div>
 <script>
+// --- ЛОГИКА КОДА ---
+const realRoomCode = '{{ game.room_code }}';
+let isCodeHidden = true;
+
+// Скрываем код из URL
+if (window.history.replaceState) {
+    window.history.replaceState(null, '', '/'); 
+}
+
+// SVG Пути для иконок глаза
+const eyeOpenPath = "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z";
+const eyeClosedPath = "M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z";
+
+function toggleCode() {
+    isCodeHidden = !isCodeHidden;
+    const textToShow = isCodeHidden ? '******' : realRoomCode;
+    const eyeIcon = document.getElementById('eye-icon');
+    
+    // Меняем текст (заголовка больше нет)
+    document.getElementById('main-code').textContent = textToShow;
+    
+    // Меняем иконку
+    eyeIcon.innerHTML = `<path d="${isCodeHidden ? eyeOpenPath : eyeClosedPath}"/>`;
+}
+
+function copyCode() {
+    navigator.clipboard.writeText(realRoomCode).then(() => {
+        const feedback = document.getElementById('copy-feedback');
+        feedback.style.opacity = '1';
+        setTimeout(() => {
+            feedback.style.opacity = '0';
+        }, 1500);
+    });
+}
+
+// --- СТАНДАРТНЫЙ JS (WebSocket и прочее) ---
 const roomCode = '{{ game.room_code }}';
 const isHost = {{ is_host|yesno:"true,false" }};
 
@@ -169,95 +329,79 @@ let lobbySocket = null;
 function connect() {
     lobbySocket = new WebSocket(wsProtocol + window.location.host + '/ws/game/' + roomCode + '/');
 
-    lobbySocket.onopen = function() {
-    console.log('Lobby connected');
-    };
-
+    lobbySocket.onopen = function() { console.log('Lobby connected'); };
+    
     lobbySocket.onclose = function(e) {
-    console.warn('Lobby socket closed. Reconnecting...', e.code);
-    setTimeout(function() {
-    window.location.reload();
-    }, 2000);
+        console.warn('Socket closed. Reconnecting...');
+        setTimeout(() => window.location.reload(), 2000);
     };
 
     lobbySocket.onmessage = function(e) {
-    const data = JSON.parse(e.data);
+        const data = JSON.parse(e.data);
 
-    if (data.type === 'player_list_update') {
-        playerCountHeader.textContent = `Игроки (${data.player_count}/7)`;
-        renderPlayerList(data.players);
-        if (isHost && startGameBtn) {
-            const minPlayers = 3;
-            startGameBtn.disabled = data.player_count < minPlayers;
-            hostMessage.textContent = data.player_count < minPlayers ?
-            `Нужно минимум ${minPlayers} игрока для старта (у вас ${data.player_count}).` :
-            `Готово к старту (игроков: ${data.player_count}).`;
+        if (data.type === 'player_list_update') {
+            playerCountHeader.textContent = `Игроки (${data.player_count}/7)`;
+            renderPlayerList(data.players);
+            if (isHost && startGameBtn) {
+                const minPlayers = 3;
+                startGameBtn.disabled = data.player_count < minPlayers;
+                hostMessage.textContent = data.player_count < minPlayers ?
+                `Нужно минимум ${minPlayers} игрока для старта (у вас ${data.player_count}).` :
+                `Готово к старту (игроков: ${data.player_count}).`;
+            }
         }
-    }
-    
-    // ВАС КИКНУЛИ
-    if (data.type === 'kicked') {
-        alert('Вы были исключены из комнаты.');
-        window.location.href = "{% url 'index' %}";
-    }
-
-    if (data.type === 'game_aborted') {
-    alert(data.message);
-    window.location.href = "{% url 'index' %}";
-    }
-
-    if (data.type === 'game_started') {
-    window.location.href = data.redirect_url;
-    }
-    if (data.type === 'game_migration') {
-    window.location.href = data.new_url;
-    }
+        
+        if (data.type === 'kicked') {
+            alert('Вы были исключены из комнаты.');
+            window.location.href = "{% url 'index' %}";
+        }
+        if (data.type === 'game_aborted') {
+            alert(data.message);
+            window.location.href = "{% url 'index' %}";
+        }
+        if (data.type === 'game_started') window.location.href = data.redirect_url;
+        if (data.type === 'game_migration') window.location.href = data.new_url;
     };
 }
-
 connect();
 
 document.querySelectorAll('.profile-avatar').forEach(avatar => {
-avatar.addEventListener('click', function() {
-document.querySelectorAll('.profile-avatar').forEach(a => a.classList.remove('selected'));
-this.classList.add('selected');
-avatarHiddenInput.value = this.dataset.id;
-});
+    avatar.addEventListener('click', function() {
+        document.querySelectorAll('.profile-avatar').forEach(a => a.classList.remove('selected'));
+        this.classList.add('selected');
+        avatarHiddenInput.value = this.dataset.id;
+    });
 });
 
 profileForm.onsubmit = function(e) {
-e.preventDefault();
-if (lobbySocket && lobbySocket.readyState === WebSocket.OPEN) {
-lobbySocket.send(JSON.stringify({
-'type': 'update_profile',
-'nickname': nickInput.value,
-'avatar_id': avatarHiddenInput.value
-}));
-saveStatus.style.display = 'block';
-setTimeout(() => { saveStatus.style.display = 'none'; }, 2000);
-}
+    e.preventDefault();
+    if (lobbySocket && lobbySocket.readyState === WebSocket.OPEN) {
+        lobbySocket.send(JSON.stringify({
+            'type': 'update_profile',
+            'nickname': nickInput.value,
+            'avatar_id': avatarHiddenInput.value
+        }));
+        saveStatus.style.display = 'block';
+        setTimeout(() => { saveStatus.style.display = 'none'; }, 2000);
+    }
 };
 
-// Функция кика
 function kickPlayer(playerId, nickname) {
     if (confirm(`Выгнать игрока ${nickname}?`)) {
         if (lobbySocket && lobbySocket.readyState === WebSocket.OPEN) {
-            lobbySocket.send(JSON.stringify({
-                'type': 'kick_player',
-                'player_id': playerId
-            }));
+            lobbySocket.send(JSON.stringify({'type': 'kick_player', 'player_id': playerId}));
         }
     }
 }
 
 if (isHost && startGameBtn) {
-startGameBtn.onclick = () => {
-if (lobbySocket && lobbySocket.readyState === WebSocket.OPEN) {
-lobbySocket.send(JSON.stringify({'type': 'start_game'}));
-startGameBtn.disabled = true;
-startGameBtn.textContent = 'Запуск...';
-}
-};
+    startGameBtn.onclick = () => {
+        if (lobbySocket && lobbySocket.readyState === WebSocket.OPEN) {
+            lobbySocket.send(JSON.stringify({'type': 'start_game'}));
+            startGameBtn.disabled = true;
+            startGameBtn.textContent = 'Запуск...';
+        }
+    };
 }
 
 function renderPlayerList(players) {
@@ -265,19 +409,13 @@ function renderPlayerList(players) {
     players.forEach(player => {
         const li = document.createElement('li');
         li.className = 'player-item';
-        
-        let kickBtn = '';
-        if (isHost) {
-            kickBtn = `<button class="kick-btn" onclick="kickPlayer('${player.id}', '${player.nickname}')">❌</button>`;
-        }
-        
+        let kickBtn = isHost ? `<button class="kick-btn" onclick="kickPlayer('${player.id}', '${player.nickname}')">❌</button>` : '';
         li.innerHTML = `
         <div class="player-info-container">
             <div class="player-avatar" data-id="${player.avatar_id}"></div>
             <span class="player-name">${player.nickname}</span>
         </div>
-        ${kickBtn}
-        `;
+        ${kickBtn}`;
         playerListUL.appendChild(li);
     });
 }
