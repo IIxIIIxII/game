@@ -67,7 +67,25 @@
 
         .offline-tag { font-family: 'Orbitron'; color: #ff0055; font-weight: bold; border: 1px solid #ff0055; padding: 2px 5px; font-size: 0.7rem; position: absolute; top: 10px; left: 10px; transform: rotate(-15deg); }
 
-        /* --- МОДАЛЬНОЕ ОКНО (POPUP) --- */
+        .results-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            gap: 20px;
+        }
+
+        .arrival-visual {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, var(--neon-blue), #004e52);
+            box-shadow: 0 0 50px rgba(0, 243, 255, 0.3);
+            margin: 0 auto;
+        }
+
         #custom-modal { display: none; position: fixed; z-index: 5000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); justify-content: center; align-items: center; }
         .modal-box { 
             background: rgba(20, 20, 35, 0.95); width: 350px; padding: 30px; border-radius: 15px; 
@@ -88,7 +106,6 @@
         .m-cancel { background: transparent; border: 2px solid #555; color: #aaa; }
         .m-cancel:hover { border-color: #fff; color: #fff; }
 
-        /* HOST ACTIONS */
         .host-actions { position: absolute; bottom: 0; width: 100%; padding: 20px; background: rgba(0,0,0,0.8); display: flex; justify-content: center; gap: 15px; }
         .cyber-btn { background: var(--bg-dark); color: #fff; border: 1px solid #fff; padding: 12px 25px; font-family: 'Rajdhani'; font-size: 1.1rem; cursor: pointer; transition: 0.2s; }
         .cyber-btn:hover { background: #fff; color: #000; }
@@ -157,8 +174,7 @@
                                 <div class="sector-visual"></div>
                                 <div class="sector-name">{{ coord.coordinate_name }}</div>
                                 <div class="sector-owner">ВЫ</div>
-                                <div style="margin-top:10px; color:var(--neon-green)">{{ coord.resource_description }}</div>
-                            </div>
+                                </div>
                             {% else %}
                             <div class="sector-card {% if coord.was_visited %}disabled{% endif %}">
                                 <div class="sector-visual" style="filter: hue-rotate({{ forloop.counter0 }}0deg);"></div>
@@ -204,14 +220,12 @@
                     {% if is_host %}<div class="host-actions"><button class="cyber-btn primary action-btn" id="next-stage-btn">Итоги</button></div>{% endif %}
 
                 {% elif game.current_stage == 'results' %}
-                    <div style="display:flex; height:100%; align-items:center; justify-content:center; text-align:center;">
+                    <div class="results-container">
                         {% if last_visited_coord %}
-                        <div>
-                            <h3>ПРИБЫТИЕ В: {{ last_visited_coord.coordinate_name }}</h3>
-                            <div class="sector-visual" style="margin:20px auto; transform:scale(2);"></div>
-                            <h2 style="color:var(--neon-blue); margin-top:20px;">{{ last_visited_coord.resource_description }}</h2>
-                        </div>
-                        {% endif %}
+                            <h3 style="color: var(--neon-blue);">ПРОТОКОЛ ПРИБЫТИЯ</h3>
+                            <div class="arrival-visual"></div>
+                            <h1 style="font-family: 'Orbitron'; letter-spacing: 5px; color: #fff;">{{ last_visited_coord.coordinate_name }}</h1>
+                            {% endif %}
                     </div>
                     {% if is_host %}<div class="host-actions"><button class="cyber-btn primary action-btn" id="next-stage-btn">След. Раунд</button></div>{% endif %}
                 
@@ -272,7 +286,6 @@
             gameSocket.onmessage = (e) => {
                 const data = JSON.parse(e.data);
                 
-                // --- МИГРАЦИЯ В НОВУЮ КОМНАТУ ---
                 if (data.type === 'game_migration') {
                     showStatus('ПЕРЕХОД В НОВЫЙ СЕКТОР...', 'connecting');
                     window.location.href = data.new_url;
@@ -312,7 +325,6 @@
 
         connect();
 
-        /* --- ЛОГИКА МОДАЛЬНОГО ОКНА --- */
         const modal = document.getElementById('custom-modal');
         let scanTargetId = null;
 
@@ -331,12 +343,10 @@
             modal.style.display = 'none';
         };
 
-        /* --- КНОПКИ ХОСТА --- */
         if (isHost) {
             const next = document.querySelector('#next-stage-btn');
             if(next) next.onclick = () => { safeSend({'type': 'next_stage'}); next.disabled=true; };
             
-            // Кнопка реванша (создать новую комнату)
             const rematch = document.querySelector('#rematch-btn');
             if(rematch) rematch.onclick = () => { 
                 safeSend({'type': 'create_rematch'}); 
