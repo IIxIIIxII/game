@@ -3,138 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Космическая Игра</title>
+    <title>CrewFall - Космическая Сага</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; display: grid; place-items: center; min-height: 100vh; background: #1a1a2e; color: #e0e0e0; }
-        .main-container { background: #1f1f3d; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); text-align: center; width: 400px; }
-        h1 { margin-top: 0; color: #a942e0; }
-        
-        /* Выбор аватара */
-        .avatar-picker { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 20px 0; }
-        .avatar { width: 60px; height: 60px; border-radius: 50%; border: 3px solid #555; cursor: pointer; transition: all 0.2s; background: #444; }
-        .avatar.selected { border-color: #a942e0; box-shadow: 0 0 10px #a942e0; transform: scale(1.1); }
-        /* 10 цветов для аватарок */
-        .avatar[data-id="1"] { background-color: #e74c3c; }
-        .avatar[data-id="2"] { background-color: #3498db; }
-        .avatar[data-id="3"] { background-color: #2ecc71; }
-        .avatar[data-id="4"] { background-color: #f1c40f; }
-        .avatar[data-id="5"] { background-color: #9b59b6; }
-        .avatar[data-id="6"] { background-color: #1abc9c; }
-        .avatar[data-id="7"] { background-color: #e67e22; }
-        .avatar[data-id="8"] { background-color: #ecf0f1; }
-        .avatar[data-id="9"] { background-color: #7f8c8d; }
-        .avatar[data-id="10"] { background-color: #34495e; }
+        :root {
+            --primary-color: #d946ef; 
+            --secondary-color: #6366f1;
+            --glass-bg: rgba(15, 23, 42, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+        }
 
-        /* Поля ввода */
-        .input-group { margin-bottom: 15px; }
-        input[type="text"] { width: 100%; padding: 10px; box-sizing: border-box; background: #2f2f4d; border: 1px solid #555; color: white; border-radius: 5px; }
-        
-        /* Кнопки */
-        .button-group { display: flex; gap: 10px; }
-        button { flex: 1; padding: 12px; background: #a942e0; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background 0.2s; }
-        button:hover { background: #c065f0; }
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0; padding: 0; min-height: 100vh;
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            color: var(--text-main);
+            overflow: hidden;
+            display: flex; flex-direction: column;
+        }
 
-        /* Правила */
-        .rules-trigger { position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; background: #a942e0; color: white; border-radius: 50%; display: grid; place-items: center; font-size: 24px; cursor: pointer; box-shadow: 0 0 10px #a942e0; user-select: none; }
-        .rules-popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1f1f3d; padding: 20px; border: 2px solid #a942e0; border-radius: 10px; z-index: 100; max-width: 500px; box-shadow: 0 0 20px rgba(0,0,0,0.7); }
-        .rules-popup.show { display: block; }
-        .rules-popup h2 { text-align: center; }
+        /* --- ФОН --- */
+        body::before {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 3px);
+            background-size: 550px 550px; opacity: 0.2; z-index: -1; animation: starsMove 100s linear infinite;
+        }
+        @keyframes starsMove { from { background-position: 0 0; } to { background-position: 550px 550px; } }
 
-        /* Ошибки */
-        .messages { list-style: none; padding: 0; margin: 0 0 15px 0; }
-        .messages li.error { background: #e74c3c; padding: 10px; border-radius: 5px; }
-        
-        /* Группа кода комнаты */
-        #room-code-group { display: none; margin-top: 15px; }
-        #room-code-group input { margin-bottom: 10px; }
+        /* --- ОБНОВЛЕННЫЙ HEADER --- */
+        header {
+            position: fixed; top: 0; width: 100%; padding: 25px 60px; box-sizing: border-box;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 100; backdrop-filter: blur(20px);
+            background: rgba(0, 0, 0, 0.5); border-bottom: 1px solid var(--glass-border);
+        }
+        .logo {
+            font-family: 'Orbitron', sans-serif; font-size: 2.4rem; font-weight: 900;
+            background: linear-gradient(90deg, #fff, var(--primary-color));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-transform: uppercase; letter-spacing: 6px;
+            position: absolute; left: 50%; transform: translateX(-50%);
+            pointer-events: none;
+        }
+        .nav-links { display: flex; gap: 30px; align-items: center; }
+        .header-link {
+            font-family: 'Orbitron', sans-serif; color: rgba(255,255,255,0.6); text-decoration: none;
+            font-size: 0.85rem; letter-spacing: 2px; transition: 0.3s;
+            text-transform: uppercase; position: relative; padding: 5px 0;
+        }
+        .header-link::after {
+            content: ''; position: absolute; bottom: 0; left: 0; width: 0; height: 1px;
+            background: var(--primary-color); transition: 0.3s;
+        }
+        .header-link:hover { color: #fff; }
+        .header-link:hover::after { width: 100%; }
+
+        /* --- ГЛАВНЫЙ ЭКРАН --- */
+        .hero { flex: 1; display: flex; justify-content: space-around; align-items: center; padding-top: 100px; position: relative; }
+
+        .side-panel { font-family: 'Orbitron', sans-serif; font-size: 0.75rem; display: flex; flex-direction: column; gap: 30px; min-width: 200px; opacity: 0.4; }
+        .stat-item { border-left: 2px solid var(--primary-color); padding-left: 15px; }
+
+        .hero-main { width: 100%; max-width: 900px; z-index: 10; padding: 0 20px; }
+        #typing-text { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; color: var(--secondary-color); text-align: center; min-height: 1.5em; margin-bottom: 40px; text-shadow: 0 0 10px rgba(99, 102, 241, 0.3); }
+
+        /* КОНСОЛЬ */
+        .control-deck {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 40px; padding: 60px; backdrop-filter: blur(30px);
+            display: grid; grid-template-columns: 1fr 1.2fr; gap: 60px;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.8);
+        }
+
+        /* Аватар */
+        .avatar-section { display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 40px; }
+        .avatar-wrapper { position: relative; margin-bottom: 25px; }
+        .main-avatar {
+            width: 200px; height: 200px; border-radius: 50%;
+            background-image: url('/static/MYHEHE.png'); background-size: cover; background-position: center;
+            border: 4px solid #fff; box-shadow: 0 0 50px rgba(217, 70, 239, 0.3);
+            transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .cycle-btn {
+            position: absolute; bottom: 10px; right: 10px; width: 55px; height: 55px;
+            background: var(--secondary-color); border: 3px solid #fff; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 26px; color: #fff; cursor: pointer; transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+        }
+        .cycle-btn:hover { transform: rotate(180deg) scale(1.1); background: var(--primary-color); }
+
+        /* Действия */
+        .actions-section { display: flex; flex-direction: column; justify-content: center; gap: 20px; }
+        .btn-main {
+            padding: 22px; border-radius: 18px; border: none; font-weight: 800;
+            text-transform: uppercase; cursor: pointer; transition: 0.3s;
+            font-family: 'Orbitron', sans-serif; font-size: 1rem; letter-spacing: 2px; width: 100%;
+        }
+        .btn-create { background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; box-shadow: 0 10px 20px rgba(217, 70, 239, 0.2); }
+        .btn-join-toggle { background: rgba(255,255,255,0.03); color: #fff; border: 1px solid rgba(255,255,255,0.1); }
+        .btn-main:hover { transform: translateY(-4px); filter: brightness(1.2); box-shadow: 0 15px 30px rgba(0,0,0,0.5); }
+
+        #join-fields { display: none; flex-direction: column; gap: 15px; margin-top: 10px; padding-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); animation: slideIn 0.4s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .input-group input {
+            width: 100%; padding: 20px; box-sizing: border-box;
+            background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255,255,255,0.1);
+            color: white; border-radius: 15px; outline: none; font-size: 1rem; text-align: center; transition: 0.3s;
+        }
+        .input-group input:focus { border-color: var(--primary-color); background: rgba(0,0,0,0.8); box-shadow: 0 0 15px rgba(217, 70, 239, 0.2); }
+        .btn-join-confirm { background: var(--secondary-color); color: white; }
+
+        @media (max-width: 1000px) {
+            header { padding: 20px 30px; }
+            .control-deck { grid-template-columns: 1fr; padding: 40px; gap: 40px; }
+            .avatar-section { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); padding: 0 0 40px 0; }
+            .side-panel { display: none; }
+            .logo { font-size: 1.8rem; }
+        }
     </style>
 </head>
 <body>
-    
-    <div class="main-container">
-        <h1>Космический Корабль</h1>
-        
-        {% if messages %}
-            <ul class="messages">
-                {% for message in messages %}
-                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
 
-        <form method="post" id="game-form">
-            {% csrf_token %}
-            
-            <div class="avatar-picker">
-                {% for i in "1234567890"|make_list %}
-                <div class="avatar {% if current_avatar_id == i %}selected{% endif %}" data-id="{{ i }}"></div>
-                {% endfor %}
+    <header>
+        <div class="nav-links">
+            <a href="#" class="header-link">Об игре</a>
+        </div>
+        <div class="logo">CrewFall</div>
+        <div class="nav-links">
+            <a href="#" class="header-link">Войти</a>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="side-panel">
+            <div class="stat-item"><span style="color:#64748b; display:block;">ЛОКАЦИЯ</span><span style="color:#fff;">DEEP SPACE</span></div>
+            <div class="stat-item"><span style="color:#64748b; display:block;">ЯДРО</span><span style="color:#10b981;">STABLE</span></div>
+        </div>
+
+        <div class="hero-main">
+            <h2 id="typing-text"></h2>
+
+            <div class="control-deck">
+                <div class="avatar-section">
+                    <div class="avatar-wrapper">
+                        <div class="main-avatar" id="avatar-display"></div>
+                        <div class="cycle-btn" id="cycle-btn">↻</div>
+                    </div>
+                    <p style="font-family: 'Orbitron'; font-size: 0.75rem; color: #888; letter-spacing: 1px;">ВНЕШНОСТЬ ЭКИПАЖА</p>
+                </div>
+
+                <div class="actions-section">
+                    <form method="post" action="" id="create-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="create">
+                        <input type="hidden" name="nickname" value="Host"> 
+                        <input type="hidden" name="avatar_id" class="avatar-sync" value="0">
+                        <button type="submit" class="btn-main btn-create">Создать лобби</button>
+                    </form>
+
+                    <button type="button" id="toggle-join" class="btn-main btn-join-toggle">Присоединиться</button>
+
+                    <form method="post" action="" id="join-fields">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="join">
+                        <input type="hidden" name="avatar_id" class="avatar-sync" value="0">
+                        
+                        <div class="input-group">
+                            <input type="text" name="nickname" id="nick-field" placeholder="ВАШ ПОЗЫВНОЙ" autocomplete="off">
+                        </div>
+                        <div class="input-group">
+                            <input type="text" name="room_code" id="code-field" placeholder="КОД КОМНАТЫ">
+                        </div>
+                        <button type="submit" class="btn-main btn-join-confirm">Войти в игру</button>
+                    </form>
+                </div>
             </div>
-            <input type="hidden" name="avatar_id" id="avatar_id" value="{{ current_avatar_id }}" required>
+        </div>
 
-            <div class="input-group">
-                <input type="text" name="nickname" placeholder="Введите ваш ник" value="{{ current_nickname }}" required>
-            </div>
-
-            <hr style="border-color: #444; margin: 20px 0;">
-
-            <div class="button-group">
-                <button type="submit" name="action" value="create">Создать комнату</button>
-                <button type="button" id="btn-join">Присоединиться</button>
-            </div>
-            
-            <div class="input-group" id="room-code-group">
-                <input type="text" name="room_code" placeholder="Код комнаты (e.g. ABC12)">
-                <button type="submit" name="action" value="join" style="width: 100%;">Войти в комнату</button>
-            </div>
-        </form>
-    </div>
-
-    <div class="rules-trigger" id="rules-btn">?</div>
-    <div class="rules-popup" id="rules-content">
-        <span id="rules-close" style="float: right; cursor: pointer; font-size: 20px;">&times;</span>
-        <h2>Правила Игры</h2>
-        <ul>
-            <li>В игре участвуют 3–7 игроков и один Ведущий (он запускает игру, но не играет).</li>
-            <li>Игроки получают роли: Люди или Пришельцы (при 5+ игроках — 2 Пришельца).</li>
-            <li>Если игроков 6 или 7, одному из Людей даётся роль Учёного.</li>
-            <li>Цель Людей — несколько раз подряд выбрать безопасные координаты и не попасть к Пришельцам.</li>
-            <li>Цель Пришельцев — хотя бы один раз привести команду на свою координату.</li>
-            <li>Каждый раунд игроки обсуждают свои координаты и голосуют, куда летит корабль.</li>
-            <li>Учёный один раз за игру может узнать роль любого игрока.</li>
-            <li>Игра идёт до победы Людей или Пришельцев.</li>
-        </ul>
-    </div>
+        <div class="side-panel" style="text-align: right;">
+            <div class="stat-item" style="border-left:none; border-right:2px solid var(--primary-color); padding-right:15px;"><span style="color:#64748b; display:block;">СЕКТОР</span><span style="color:#fff;">A-12</span></div>
+            <div class="stat-item" style="border-left:none; border-right:2px solid var(--primary-color); padding-right:15px;"><span style="color:#64748b; display:block;">АКТИВНОСТЬ</span><span style="color:#fff;">HIGH</span></div>
+        </div>
+    </section>
 
     <script>
-        // Логика выбора аватара
-        const avatarPicker = document.querySelector('.avatar-picker');
-        const hiddenInput = document.querySelector('#avatar_id');
-        
-        avatarPicker.addEventListener('click', function(e) {
-            if (e.target.classList.contains('avatar')) {
-                avatarPicker.querySelectorAll('.avatar').forEach(a => a.classList.remove('selected'));
-                e.target.classList.add('selected');
-                hiddenInput.value = e.target.dataset.id;
+        // Текст-машинка
+        const textElement = document.getElementById('typing-text');
+        const phrases = ["Инициализация командного центра...", "Ожидание подключения экипажа...", "Системы жизнеобеспечения в норме."];
+        let pIdx = 0, cIdx = 0, isDeleting = false;
+        function type() {
+            const current = phrases[pIdx];
+            textElement.textContent = isDeleting ? current.substring(0, cIdx--) : current.substring(0, cIdx++);
+            let speed = isDeleting ? 30 : 70;
+            if (!isDeleting && cIdx === current.length + 1) { speed = 2500; isDeleting = true; }
+            else if (isDeleting && cIdx === 0) { isDeleting = false; pIdx = (pIdx + 1) % phrases.length; speed = 500; }
+            setTimeout(type, speed);
+        }
+        type();
+
+        // Логика аватара
+        const avatars = ['/static/MYHEHE.png', '/static/MYHEHE1.png', '/static/MYHEHE2.png', '/static/MYHEHE3.png', '/static/MYHEHE4.png', '/static/MYHEHE6.png'];
+        let currentIdx = 0;
+        const display = document.getElementById('avatar-display');
+        const syncInputs = document.querySelectorAll('.avatar-sync');
+
+        document.getElementById('cycle-btn').onclick = () => {
+            currentIdx = (currentIdx + 1) % avatars.length;
+            display.style.transform = 'scale(0.8) rotate(-10deg)';
+            setTimeout(() => {
+                display.style.backgroundImage = `url('${avatars[currentIdx]}')`;
+                display.style.transform = 'scale(1) rotate(0deg)';
+                syncInputs.forEach(input => input.value = currentIdx);
+            }, 150);
+        };
+
+        // Раскрытие формы входа
+        const toggleBtn = document.getElementById('toggle-join');
+        const joinFields = document.getElementById('join-fields');
+        const nickField = document.getElementById('nick-field');
+        const codeField = document.getElementById('code-field');
+
+        toggleBtn.onclick = () => {
+            const isHidden = joinFields.style.display !== 'flex';
+            joinFields.style.display = isHidden ? 'flex' : 'none';
+            toggleBtn.textContent = isHidden ? 'Отмена' : 'Присоединиться';
+            
+            if(isHidden) {
+                nickField.setAttribute('required', '');
+                codeField.setAttribute('required', '');
+                nickField.focus();
+            } else {
+                nickField.removeAttribute('required');
+                codeField.removeAttribute('required');
             }
-        });
+        };
 
-        // Логика показа/скрытия поля "Код комнаты"
-        const btnJoin = document.querySelector('#btn-join');
-        const roomCodeGroup = document.querySelector('#room-code-group');
-        
-        btnJoin.addEventListener('click', function(e) {
-            roomCodeGroup.style.display = 'block';
-            roomCodeGroup.querySelector('input').required = true;
-        });
-
-        // Логика правил
-        const rulesBtn = document.querySelector('#rules-btn');
-        const rulesPopup = document.querySelector('#rules-content');
-        const rulesClose = document.querySelector('#rules-close');
-
-        rulesBtn.addEventListener('click', () => rulesPopup.classList.add('show'));
-        rulesClose.addEventListener('click', () => rulesPopup.classList.remove('show'));
+        // Небольшой лог для проверки отправки в консоли
+        document.getElementById('create-form').onsubmit = () => console.log("Отправка формы создания...");
     </script>
 </body>
 </html>
