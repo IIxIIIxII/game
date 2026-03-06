@@ -23,20 +23,22 @@
                 radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 3px),
                 radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 3px);
             background-size: 550px 550px, 350px 350px;
-            color: #e0e0e0; margin: 0; height: 100vh; overflow: hidden;
+            color: #e0e0e0; margin: 0; 
+            height: 100vh; overflow: hidden;
+            padding: 100px 20px 20px 20px;
         }
 
-        .page-layout { display: flex; height: 100vh; padding: 20px; gap: 20px; }
+        .page-layout { display: flex; height: 100%; gap: 20px; }
         .game-interface { flex: 3; background: var(--glass); border: 1px solid rgba(0, 243, 255, 0.2); border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-        .comm-link { flex: 1; background: rgba(10, 10, 15, 0.9); border-left: 2px solid var(--neon-purple); border-radius: 15px; display: flex; flex-direction: column; }
+        .comm-link { flex: 1; background: rgba(10, 10, 15, 0.9); border-left: 2px solid var(--neon-purple); border-radius: 15px; display: flex; flex-direction: column; transition: 0.3s; }
 
         h2, h3 { font-family: 'Orbitron', sans-serif; text-transform: uppercase; margin: 0; }
         
         .header-panel { 
             padding: 20px; 
             border-bottom: 1px solid rgba(255,255,255,0.1); 
-            display: grid; 
-            grid-template-columns: 1fr auto 1fr; 
+            display: flex; 
+            justify-content: space-between; 
             align-items: center; 
         }
         
@@ -45,75 +47,43 @@
             border: 1px solid var(--neon-blue); 
             padding: 5px 15px; 
             border-radius: 20px; 
-            justify-self: end;
         }
 
-        .menu-wrapper { position: relative; justify-self: start; }
-
-        .menu-btn-trigger {
-            background: transparent;
-            border: 1px solid var(--neon-blue);
-            color: var(--neon-blue);
-            padding: 8px 15px;
-            font-family: 'Orbitron';
-            cursor: pointer;
-            border-radius: 5px;
-            transition: 0.3s;
-            font-size: 1.2rem;
+        .chat-toggle-edge {
+            position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+            background: rgba(20, 20, 35, 0.9); border: 1px solid var(--neon-purple); border-right: none;
+            color: var(--neon-purple); width: 35px; height: 90px; border-radius: 15px 0 0 15px;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            z-index: 1000; font-size: 1.2rem; transition: 0.3s; box-shadow: -5px 0 15px rgba(188, 19, 254, 0.15);
         }
-        .menu-btn-trigger:hover { background: var(--neon-blue); color: #000; }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background: rgba(10, 10, 20, 0.95);
-            min-width: 200px;
-            border: 1px solid var(--neon-blue);
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
-            border-radius: 5px;
-            z-index: 2000;
-            margin-top: 5px;
-            overflow: hidden;
-        }
-
-        .dropdown-content button, .dropdown-content a {
-            display: block;
-            width: 100%;
-            padding: 12px 15px;
-            text-align: left;
-            background: transparent;
-            border: none;
-            border-bottom: 1px solid #333;
-            color: #fff;
-            font-family: 'Rajdhani';
-            font-size: 1rem;
-            text-decoration: none;
-            cursor: pointer;
-            transition: 0.2s;
-            box-sizing: border-box;
-        }
-
-        .dropdown-content button:hover, .dropdown-content a:hover {
-            background: rgba(0, 243, 255, 0.1);
-            color: var(--neon-blue);
-            padding-left: 20px;
-        }
-        .show-menu { display: block; }
+        .chat-toggle-edge:hover { background: var(--neon-purple); color: #fff; box-shadow: -5px 0 25px rgba(188, 19, 254, 0.5); width: 45px; }
 
         .galaxy-map { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 30px; overflow-y: auto; height: 100%; }
 
         .sector-card {
-            background: rgba(20, 25, 40, 0.8); border: 1px solid #444; border-radius: 10px; padding: 20px; text-align: center; position: relative; transition: 0.3s;
-            display: flex; flex-direction: column; justify-content: space-between;
+            background: rgba(20, 25, 40, 0.8); border: 1px solid #444; border-radius: 10px; padding: 25px; text-align: center; position: relative; transition: 0.3s;
+            display: flex; flex-direction: column;
+            justify-content: start; 
+            align-items: center;
         }
         .sector-card:not(.disabled):hover { transform: translateY(-5px); border-color: var(--neon-blue); box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); }
         .sector-card.disabled { opacity: 0.5; filter: grayscale(80%); border-color: #333; background: rgba(0,0,0,0.5); pointer-events: none; }
 
-        .sector-visual { width: 70px; height: 70px; margin: 0 auto 10px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #4facfe, #00f2fe); }
-        .sector-name { font-size: 1.1rem; color: #fff; margin-bottom: 5px; font-weight: bold; }
-        .sector-owner { font-size: 0.9rem; color: #888; }
+        /* --- ОБНОВЛЕННЫЕ СТИЛИ КАРТОЧЕК --- */
+        .player-avatar { 
+            width: 90px; height: 90px; margin: 0 auto 10px; border-radius: 50%; 
+            background-size: cover; background-position: center; 
+            border: 3px solid var(--neon-blue); box-shadow: 0 0 15px rgba(0, 243, 255, 0.3); 
+        }
+        .sector-owner { 
+            font-size: 1.1rem; color: #fff; margin-bottom: 2px; font-weight: bold; 
+            text-transform: uppercase; font-family: 'Orbitron'; letter-spacing: 1px; 
+            word-break: break-all; width: 100%;
+        }
+        .sector-name { 
+            font-size: 1.1rem; color: #ffffff; font-weight: bold; 
+            font-family: 'Orbitron'; text-transform: uppercase;
+        }
         
         .vote-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8);
@@ -181,6 +151,8 @@
 </head>
 <body>
 
+    {% include 'game_app/header.html' %}
+
     <div id="status-bar"></div>
 
     <div id="custom-modal">
@@ -213,33 +185,23 @@
 
     <div class="page-layout">
         <div class="game-interface">
+            <button id="chat-toggle-btn" class="chat-toggle-edge" onclick="toggleChat()" title="Скрыть/Показать чат">▶</button>
+
             <div class="header-panel">
-                <div class="menu-wrapper">
-                    <button class="menu-btn-trigger" onclick="toggleMenu()">☰ МЕНЮ</button>
-                    <div id="dropdown-menu" class="dropdown-content">
-                        <button onclick="document.getElementById('rules-modal').style.display='flex'">📜 Правила</button>
-                        
-                        <button onclick="leaveGame()">🚪 Выйти</button>
-                        
-                        {% if is_host %}
-                        <button style="color: var(--neon-red);" onclick="disbandRoom()">💥 Распустить лобби</button>
+                <h2 style="margin: 0;">Сектор: {{ game.room_code }}</h2>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <div class="phase-indicator">
+                        {% if game.current_stage == 'roles' %}БРИФИНГ
+                        {% elif game.current_stage == 'coordinates' %}РАЗВЕДКА
+                        {% elif game.current_stage == 'voting' %}ВЫБОР ЦЕЛИ
+                        {% elif game.current_stage == 'results' %}ОТЧЕТ
+                        {% elif game.current_stage == 'game_over' %}КОНЕЦ
                         {% endif %}
                     </div>
                 </div>
-
-                <h2 style="text-align: center;">Сектор: {{ game.room_code }}</h2>
-                
-                <div class="phase-indicator">
-                    {% if game.current_stage == 'roles' %}БРИФИНГ
-                    {% elif game.current_stage == 'coordinates' %}РАЗВЕДКА
-                    {% elif game.current_stage == 'voting' %}ВЫБОР ЦЕЛИ
-                    {% elif game.current_stage == 'results' %}ОТЧЕТ
-                    {% elif game.current_stage == 'game_over' %}КОНЕЦ
-                    {% endif %}
-                </div>
             </div>
 
-            <div style="flex:1; overflow-y:auto; position: relative;" onclick="closeMenuIfOpen(event)">
+            <div style="flex:1; overflow-y:auto; position: relative;">
                 
                 {% if game.current_stage == 'roles' %}
                     <div style="display:flex; height:100%; align-items:center; justify-content:center; flex-direction:column; text-align:center;">
@@ -267,15 +229,15 @@
                         {% for coord in game.coordinates.all %}
                             {% if coord.player == player %}
                             <div class="sector-card" style="border-color: var(--neon-green);">
-                                <div class="sector-visual"></div>
+                                <div class="player-avatar" style="background-image: url('/static/MYHEHE{% if coord.player.avatar_id|stringformat:'s' != '0' %}{{ coord.player.avatar_id }}{% endif %}.png'); border-color: var(--neon-green); box-shadow: 0 0 15px rgba(10, 255, 0, 0.4);"></div>
+                                <div class="sector-owner" style="color: var(--neon-green);">{{ coord.player.nickname }}</div>
                                 <div class="sector-name">{{ coord.coordinate_name }}</div>
-                                <div class="sector-owner">ВЫ</div>
                             </div>
                             {% else %}
                             <div class="sector-card {% if coord.was_visited %}disabled{% endif %}">
-                                <div class="sector-visual" style="filter: hue-rotate({{ forloop.counter0 }}0deg);"></div>
-                                <div class="sector-name">{{ coord.coordinate_name }}</div>
+                                <div class="player-avatar" style="background-image: url('/static/MYHEHE{% if coord.player.avatar_id|stringformat:'s' != '0' %}{{ coord.player.avatar_id }}{% endif %}.png'); {% if coord.was_visited %}border-color: #555; box-shadow: none; filter: grayscale(100%);{% endif %}"></div>
                                 <div class="sector-owner">{{ coord.player.nickname }}</div>
+                                <div class="sector-name">{{ coord.coordinate_name }}</div>
                                 
                                 {% if coord.was_visited %}
                                     <div class="offline-tag">OFFLINE</div>
@@ -295,9 +257,12 @@
                     <div class="galaxy-map">
                         {% for coord in game.coordinates.all %}
                         <div class="sector-card {% if coord.was_visited or player.has_voted or coord.player == player %}disabled{% endif %}" style="position: relative;">
-                             <div class="sector-visual" style="filter: hue-rotate({{ forloop.counter0 }}0deg);"></div>
+                             <div class="player-avatar" style="background-image: url('/static/MYHEHE{% if coord.player.avatar_id|stringformat:'s' != '0' %}{{ coord.player.avatar_id }}{% endif %}.png'); {% if coord.player == player %}border-color: var(--neon-green);{% endif %} {% if coord.was_visited %}border-color: #555; box-shadow: none; filter: grayscale(100%);{% endif %}"></div>
+                             
+                             <div class="sector-owner" {% if coord.player == player %}style="color: var(--neon-green);"{% endif %}>
+                                 {{ coord.player.nickname }}
+                             </div>
                              <div class="sector-name">{{ coord.coordinate_name }}</div>
-                             <div class="sector-owner">{{ coord.player.nickname }}</div>
                              
                              {% if coord.votes > 0 %}<div class="vote-count">{{ coord.votes }}</div>{% endif %}
 
@@ -355,10 +320,7 @@
 
     <script>
         const roomCode = '{{ game.room_code }}';
-        
-        // СОХРАНЯЕМ ССЫЛКУ ДЛЯ ВЫХОДА В ПЕРЕМЕННУЮ JS
         const leaveUrl = "{% url 'leave_game' game.room_code %}";
-        
         const isHost = {{ is_host|yesno:"true,false" }};
         const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
         let gameSocket = null;
@@ -405,8 +367,8 @@
                     const area = document.getElementById(`scan-res-${data.target_id}`);
                     if (area) {
                         area.innerHTML = data.is_alien 
-                            ? '<span class="scan-result-badge res-alien">ПРИШЕЛЕЦ ⚠️</span>' 
-                            : '<span class="scan-result-badge res-human">ЧЕЛОВЕК ✅</span>';
+                            ? '<span class="scan-result-badge res-alien" style="color:#ff0055;">ПРИШЕЛЕЦ ⚠️</span>' 
+                            : '<span class="scan-result-badge res-human" style="color:#0aff00;">ЧЕЛОВЕК ✅</span>';
                         document.querySelectorAll('.btn-scan').forEach(btn => btn.style.display = 'none');
                     }
                 }
@@ -449,19 +411,19 @@
             modal.style.display = 'none';
         };
 
-        // --- УПРАВЛЕНИЕ МЕНЮ ---
-        function toggleMenu() {
-            document.getElementById('dropdown-menu').classList.toggle('show-menu');
-        }
-        
-        function closeMenuIfOpen(e) {
-            const dropdown = document.getElementById('dropdown-menu');
-            if (dropdown.classList.contains('show-menu')) {
-                dropdown.classList.remove('show-menu');
+        function toggleChat() {
+            const chatPanel = document.querySelector('.comm-link');
+            const toggleBtn = document.getElementById('chat-toggle-btn');
+            
+            if (chatPanel.style.display === 'none') {
+                chatPanel.style.display = 'flex';
+                toggleBtn.innerHTML = '▶'; 
+            } else {
+                chatPanel.style.display = 'none';
+                toggleBtn.innerHTML = '◀'; 
             }
         }
 
-        // --- НОВАЯ ФУНКЦИЯ ВЫХОДА ---
         function leaveGame() {
             if (confirm('Выйти из игры? Ваш персонаж останется в игре, но вы потеряете управление.')) {
                 window.location.href = leaveUrl;
@@ -480,6 +442,8 @@
             
             const rematch = document.querySelector('#rematch-btn');
             if(rematch) rematch.onclick = () => { 
+                // СТАВИМ ФЛАГ ДЛЯ НОВОГО ЛОББИ
+                localStorage.setItem('room_code_changed', 'true');
                 safeSend({'type': 'create_rematch'}); 
                 rematch.disabled=true; 
                 rematch.textContent = "СОЗДАНИЕ...";

@@ -1,0 +1,117 @@
+<style>
+    /* --- СТИЛИ HEADER И МЕНЮ --- */
+    header {
+        position: fixed; top: 0; left: 0; width: 100%; padding: 20px 40px; 
+        box-sizing: border-box; display: flex; justify-content: space-between; 
+        align-items: center; z-index: 1000; backdrop-filter: blur(20px);
+        background: rgba(0, 0, 0, 0.7); border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .header-spacer { width: 150px; } 
+    .logo {
+        font-family: 'Orbitron', sans-serif; font-size: 2.2rem; font-weight: 900;
+        background: linear-gradient(90deg, #fff, #d946ef);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        text-transform: uppercase; letter-spacing: 8px;
+    }
+
+    .menu-container { position: relative; }
+    .menu-btn {
+        background: rgba(255,255,255,0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white; padding: 10px 25px; border-radius: 8px; cursor: pointer;
+        font-family: 'Orbitron', sans-serif; font-size: 0.8rem; transition: 0.3s;
+    }
+    .dropdown-content {
+        display: none; position: absolute; top: calc(100% + 10px); right: 0;
+        background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1);
+        min-width: 220px; border-radius: 12px; overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    }
+    .dropdown-content.active { display: block; }
+    .dropdown-content a {
+        color: white; padding: 14px 20px; text-decoration: none; display: block;
+        font-family: 'Orbitron', sans-serif; font-size: 0.75rem; transition: 0.2s;
+        cursor: pointer;
+    }
+    .dropdown-content a:hover { background: #d946ef; }
+
+    /* --- СТИЛИ МОДАЛКИ ПОДДЕРЖКИ --- */
+    .support-modal { 
+        display: none; position: fixed; z-index: 2000; top: 0; left: 0; 
+        width: 100%; height: 100%; background: rgba(0,0,0,0.85); 
+        backdrop-filter: blur(10px); align-items: center; justify-content: center; 
+    }
+    .support-modal-content { 
+        background: #1e1e3f; padding: 40px; border-radius: 25px; 
+        border: 1px solid #d946ef; width: 100%; max-width: 500px; 
+        display: flex; flex-direction: column; box-sizing: border-box;
+    }
+    .support-input {
+        width: 100%; padding: 15px; background: rgba(0,0,0,0.5); 
+        border: 1px solid rgba(255, 255, 255, 0.1); color: white; 
+        border-radius: 10px; outline: none; font-family: 'Orbitron', sans-serif; 
+        box-sizing: border-box; transition: 0.3s; font-size: 0.9rem; margin-bottom: 15px;
+    }
+    .support-input:focus { border-color: #d946ef; background: rgba(0,0,0,0.7); }
+    .support-btn {
+        padding: 15px; border: none; border-radius: 15px; cursor: pointer; 
+        font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: 2px; 
+        transition: 0.3s; width: 100%; box-sizing: border-box; text-transform: uppercase; color: white;
+    }
+</style>
+
+<header>
+    <div class="header-spacer"></div>
+    <div class="logo">CrewFall</div>
+    <div class="menu-container">
+        <button class="menu-btn" id="headerMenuBtn">МЕНЮ ▼</button>
+        <div class="dropdown-content" id="headerMenuDropdown">
+            {% if game %}
+                <a onclick="document.getElementById('rules-modal').style.display='flex'">ПРАВИЛА</a>
+                {% if not is_host %}
+                    <a onclick="leaveGame()">ВЫЙТИ ИЗ ЛОББИ</a>
+                {% endif %}
+                {% if is_host %}
+                    <a style="color: #ff0055;" onclick="disbandRoom()">РАСПУСТИТЬ ЛОББИ</a>
+                {% endif %}
+            {% else %}
+                <a href="#">ВОЙТИ</a>
+            {% endif %}
+            <a onclick="openSupport(event)">ТЕХПОДДЕРЖКА</a>
+        </div>
+    </div>
+</header>
+
+<div id="support-modal-box" class="support-modal">
+    <div class="support-modal-content">
+        <h3 style="color: white; font-family: 'Orbitron', sans-serif; text-align: center; margin-top: 0; margin-bottom: 25px;">СВЯЗЬ С ПОДДЕРЖКОЙ</h3>
+        <input type="text" id="support-name" class="support-input" placeholder="ВАШЕ ИМЯ" required>
+        <textarea id="support-text" class="support-input" style="margin-bottom: 20px; resize: none;" placeholder="ВАШЕ СООБЩЕНИЕ..." rows="5" required></textarea>
+        <div style="display: flex; gap: 10px;">
+            <button class="support-btn" style="background: #334155;" onclick="closeSupport()">ОТМЕНА</button>
+            <button class="support-btn" style="background: linear-gradient(135deg, #d946ef, #6366f1);" onclick="closeSupport()">ОТПРАВИТЬ</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const headerMenuBtn = document.getElementById('headerMenuBtn');
+    const headerMenuDropdown = document.getElementById('headerMenuDropdown');
+    
+    headerMenuBtn.addEventListener('click', (e) => { 
+        e.stopPropagation(); 
+        headerMenuDropdown.classList.toggle('active'); 
+    });
+    
+    window.addEventListener('click', () => { 
+        headerMenuDropdown.classList.remove('active'); 
+    });
+
+    function openSupport(e) { 
+        e.preventDefault(); 
+        document.getElementById('support-modal-box').style.display = 'flex'; 
+        headerMenuDropdown.classList.remove('active');
+    }
+    function closeSupport() { 
+        document.getElementById('support-modal-box').style.display = 'none'; 
+    }
+</script>

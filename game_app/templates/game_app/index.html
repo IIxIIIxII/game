@@ -115,6 +115,41 @@
         .input-group input:focus { border-color: var(--primary-color); background: rgba(0,0,0,0.8); box-shadow: 0 0 15px rgba(217, 70, 239, 0.2); }
         .btn-join-confirm { background: var(--secondary-color); color: white; }
 
+        /* --- КНОПКА И МОДАЛКА ПРАВИЛ --- */
+        .rules-btn-fixed {
+            position: fixed; bottom: 30px; right: 30px; z-index: 1000;
+            background: rgba(0,0,0,0.6); border: 1px solid var(--primary-color);
+            color: var(--primary-color); padding: 12px 25px;
+            font-family: 'Orbitron', sans-serif; font-size: 0.9rem; font-weight: bold;
+            cursor: pointer; border-radius: 12px; transition: 0.3s;
+            box-shadow: 0 0 15px rgba(217, 70, 239, 0.2);
+        }
+        .rules-btn-fixed:hover {
+            background: var(--primary-color); color: #fff;
+            box-shadow: 0 0 25px var(--primary-color);
+        }
+
+        #rules-modal { 
+            display: none; position: fixed; z-index: 5000; left: 0; top: 0; 
+            width: 100%; height: 100%; background: rgba(0,0,0,0.85); 
+            backdrop-filter: blur(5px); justify-content: center; align-items: center; 
+        }
+        .modal-box { 
+            background: rgba(20, 20, 35, 0.95); width: 500px; padding: 40px; border-radius: 15px; 
+            border: 2px solid var(--primary-color); text-align: center; box-shadow: 0 0 30px rgba(217, 70, 239, 0.2);
+            animation: slideDown 0.3s; max-height: 85vh; overflow-y: auto; box-sizing: border-box;
+        }
+        .modal-box h3 { color: var(--primary-color); margin-top: 0; margin-bottom: 20px; font-family: 'Orbitron', sans-serif; font-size: 1.5rem; }
+        .modal-box p { margin-bottom: 15px; font-size: 1rem; line-height: 1.5; color: #ddd; }
+        .modal-box ul { text-align: left; margin-bottom: 25px; list-style-position: inside; color: #ddd; line-height: 1.6;}
+        .modal-box li { margin-bottom: 10px; }
+        .m-cancel { 
+            background: transparent; border: 2px solid #555; color: #aaa; 
+            padding: 12px 30px; border-radius: 8px; cursor: pointer; 
+            font-family: 'Orbitron', sans-serif; font-weight: bold; transition: 0.2s;
+        }
+        .m-cancel:hover { border-color: #fff; color: #fff; }
+
         @media (max-width: 1000px) {
             header { padding: 20px 30px; }
             .control-deck { grid-template-columns: 1fr; padding: 40px; gap: 40px; }
@@ -135,6 +170,24 @@
             <a href="#" class="header-link">Войти</a>
         </div>
     </header>
+
+    <button class="rules-btn-fixed" onclick="document.getElementById('rules-modal').style.display='flex'">📜 ПРАВИЛА</button>
+
+    <div id="rules-modal">
+        <div class="modal-box">
+            <h3>ПРАВИЛА ИГРЫ</h3>
+            <div style="text-align: left; margin-bottom: 20px;">
+                <p>В игре участвуют 3–7 игроков и один Ведущий.</p>
+                <ul>
+                    <li><strong>Люди:</strong> Цель — несколько раз подряд выбрать безопасные координаты и не попасть к Пришельцам.</li>
+                    <li><strong>Пришельцы:</strong> Цель — хотя бы один раз привести команду на свою координату.</li>
+                    <li><strong>Ученый:</strong> Один раз за игру может узнать роль любого игрока (появляется при 6-7 игроках).</li>
+                </ul>
+                <p>Каждый раунд игроки обсуждают свои координаты и голосуют, куда летит корабль. Игра идёт до победы Людей или Пришельцев.</p>
+            </div>
+            <button class="m-cancel" onclick="document.getElementById('rules-modal').style.display='none'">ПОНЯТНО</button>
+        </div>
+    </div>
 
     <section class="hero">
         <div class="side-panel">
@@ -203,12 +256,34 @@
         }
         type();
 
-        // Логика аватара
+        // Логика элементов и LocalStorage
         const avatars = ['/static/MYHEHE.png', '/static/MYHEHE1.png', '/static/MYHEHE2.png', '/static/MYHEHE3.png', '/static/MYHEHE4.png', '/static/MYHEHE6.png'];
         let currentIdx = 0;
         const display = document.getElementById('avatar-display');
         const syncInputs = document.querySelectorAll('.avatar-sync');
+        const nickField = document.getElementById('nick-field');
+        const codeField = document.getElementById('code-field');
 
+        // ВОССТАНОВЛЕНИЕ ДАННЫХ ПРИ ЗАГРУЗКЕ
+        const savedAvatar = localStorage.getItem('crewfall_avatar');
+        const savedNick = localStorage.getItem('crewfall_nickname');
+
+        if (savedAvatar !== null) {
+            currentIdx = parseInt(savedAvatar);
+            display.style.backgroundImage = `url('${avatars[currentIdx]}')`;
+            syncInputs.forEach(input => input.value = currentIdx);
+        }
+
+        if (savedNick !== null) {
+            nickField.value = savedNick;
+        }
+
+        // СОХРАНЕНИЕ НИКА ПРИ ВВОДЕ
+        nickField.addEventListener('input', (e) => {
+            localStorage.setItem('crewfall_nickname', e.target.value);
+        });
+
+        // СОХРАНЕНИЕ АВАТАРА ПРИ ПЕРЕКЛЮЧЕНИИ
         document.getElementById('cycle-btn').onclick = () => {
             currentIdx = (currentIdx + 1) % avatars.length;
             display.style.transform = 'scale(0.8) rotate(-10deg)';
@@ -216,14 +291,15 @@
                 display.style.backgroundImage = `url('${avatars[currentIdx]}')`;
                 display.style.transform = 'scale(1) rotate(0deg)';
                 syncInputs.forEach(input => input.value = currentIdx);
+                
+                // Сохраняем выбранный индекс аватара в память
+                localStorage.setItem('crewfall_avatar', currentIdx);
             }, 150);
         };
 
         // Раскрытие формы входа
         const toggleBtn = document.getElementById('toggle-join');
         const joinFields = document.getElementById('join-fields');
-        const nickField = document.getElementById('nick-field');
-        const codeField = document.getElementById('code-field');
 
         toggleBtn.onclick = () => {
             const isHidden = joinFields.style.display !== 'flex';
@@ -240,7 +316,7 @@
             }
         };
 
-        // Небольшой лог для проверки отправки в консоли
+        // Лог для проверки
         document.getElementById('create-form').onsubmit = () => console.log("Отправка формы создания...");
     </script>
 </body>
