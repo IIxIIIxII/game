@@ -164,7 +164,7 @@
             {% endif %}
 
             <div style="width: 100%; margin-top: 10px;">
-                <span style="font-size: 0.65rem; color: #64748b; font-family: 'Orbitron'; display: block; margin-bottom: 10px;">КОД ДОСТУПА В СЕКТОР</span>
+                <span style="font-size: 0.65rem; color: #64748b; font-family: 'Orbitron'; display: block; margin-bottom: 10px;">КОД ЛОББИ</span>
                 <div class="room-code-box">
                     <span id="main-code" class="code-val">******</span>
                     <div style="display: flex; gap: 10px;">
@@ -182,14 +182,14 @@
 
             <div class="controls-group">
                 {% if is_host %}
-                    <button id="start-game-btn" class="btn-main btn-start" {% if player_count < 3 %}disabled{% endif %}>ЗАПУСК ЯДРА</button>
+                    <button id="start-game-btn" class="btn-main btn-start" {% if player_count < 3 %}disabled{% endif %}>ЗАПУСК ИГРЫ</button>
                     <form method="post" action="{% url 'index' %}" style="width: 100%;">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="delete_room">
-                        <button type="submit" class="btn-main btn-danger-outline" onclick="return confirm('УНИЧТОЖИТЬ ЛОББИ?')">ЛИКВИДИРОВАТЬ СЕКТОР</button>
+                        <button type="submit" class="btn-main btn-danger-outline" onclick="return confirm('УНИЧТОЖИТЬ ЛОББИ?')">РАСПУСТИТЬ ЛОББИ</button>
                     </form>
                 {% else %}
-                    <a href="{% url 'leave_game' game.room_code %}" class="btn-main btn-danger-outline" onclick="return confirm('ПОКИНУТЬ ЭКИПАЖ?')">ВЫЙТИ ИЗ ШЛЮЗА</a>
+                    <a href="{% url 'leave_game' game.room_code %}" class="btn-main btn-danger-outline" onclick="return confirm('ПОКИНУТЬ ЭКИПАЖ?')">ВЫЙТИ ЛОББИ</a>
                 {% endif %}
             </div>
 
