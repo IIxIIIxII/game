@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -8,12 +9,19 @@ SECRET_KEY = 'django-insecure-your-secret-key-here'
 DEBUG = True
 
 ALLOWED_HOSTS = [
+    '*', # Звездочка разрешает любые подключения (Railway, ngrok, localhost)
     'localhost',
     '127.0.0.1',
-    # Убери 'https://' и добавь шаблон с точкой (на случай смены адреса)
     '.ngrok-free.dev',
-    # Можно оставить и конкретный адрес без https://, если хочешь
     'cirrostrative-unshared-kelley.ngrok-free.dev',
+]
+
+# ВАЖНО: В Django 4+ в конце ссылок CSRF не должно быть слешей (/)
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'https://*.ngrok-free.dev',
+    'https://*.up.railway.app',
 ]
 
 INSTALLED_APPS = [
@@ -30,6 +38,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', # <--- ДОБАВЛЕНО ДЛЯ СТАТИКИ НА RAILWAY
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -58,12 +67,18 @@ TEMPLATES = [
 
 ASGI_APPLICATION = 'cosmic_game.asgi.application'
 
+# --- НАСТРОЙКА БАЗЫ ДАННЫХ ---
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# Умное переключение: если на Railway есть PostgreSQL, используем его
+db_from_env = dj_database_url.config(conn_max_age=500)
+if db_from_env:
+    DATABASES['default'].update(db_from_env)
 
 AUTH_PASSWORD_VALIDATORS = []
 
@@ -72,19 +87,29 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# --- НАСТРОЙКА СТАТИКИ ---
 STATIC_URL = '/static/'
-# УБЕРИТЕ STATICFILES_DIRS пока что, чтобы избежать предупреждений
-# STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') # Папка, куда соберется вся статика для продакшена
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
-    },
-}
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:8000/',
-    'http://127.0.0.1:8000/',
-    'https://*.ngrok-free.dev/', # <-- Проверь эту строку очень внимательно
-]
+# --- НАСТРОЙКА WEBSOCKETS (CHANNELS) ---
+redis_url = os.environ.get('REDIS_URL')
+
+if redis_url:
+    # На сервере Railway используем Redis
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                "hosts": [redis_url],
+            },
+        },
+    }
+else:
+    # На компе (или ngrok) оставляем локальную память
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer"
+        }
+    }
