@@ -229,13 +229,13 @@
                         {% for coord in game.coordinates.all %}
                             {% if coord.player == player %}
                             <div class="sector-card" style="border-color: var(--neon-green);">
-                                <div class="player-avatar" style="background-image: url('/static/MYHEHE{% if coord.player.avatar_id|stringformat:'s' != '0' %}{{ coord.player.avatar_id }}{% endif %}.png'); border-color: var(--neon-green); box-shadow: 0 0 15px rgba(10, 255, 0, 0.4);"></div>
+                                <div class="player-avatar" style="background-image: url('/static/myhehe{% if coord.player.avatar_id|stringformat:'s' != '0' %}{{ coord.player.avatar_id }}{% endif %}.png'); border-color: var(--neon-green); box-shadow: 0 0 15px rgba(10, 255, 0, 0.4);"></div>
                                 <div class="sector-owner" style="color: var(--neon-green);">{{ coord.player.nickname }}</div>
                                 <div class="sector-name">{{ coord.coordinate_name }}</div>
                             </div>
                             {% else %}
                             <div class="sector-card {% if coord.was_visited %}disabled{% endif %}">
-                                <div class="player-avatar" style="background-image: url('/static/MYHEHE{% if coord.player.avatar_id|stringformat:'s' != '0' %}{{ coord.player.avatar_id }}{% endif %}.png'); {% if coord.was_visited %}border-color: #555; box-shadow: none; filter: grayscale(100%);{% endif %}"></div>
+                                <div class="player-avatar" style="background-image: url('/static/myhehe{% if coord.player.avatar_id|stringformat:'s' != '0' %}{{ coord.player.avatar_id }}{% endif %}.png'); {% if coord.was_visited %}border-color: #555; box-shadow: none; filter: grayscale(100%);{% endif %}"></div>
                                 <div class="sector-owner">{{ coord.player.nickname }}</div>
                                 <div class="sector-name">{{ coord.coordinate_name }}</div>
                                 
@@ -257,7 +257,7 @@
                     <div class="galaxy-map">
                         {% for coord in game.coordinates.all %}
                         <div class="sector-card {% if coord.was_visited or player.has_voted or coord.player == player %}disabled{% endif %}" style="position: relative;">
-                             <div class="player-avatar" style="background-image: url('/static/MYHEHE{% if coord.player.avatar_id|stringformat:'s' != '0' %}{{ coord.player.avatar_id }}{% endif %}.png'); {% if coord.player == player %}border-color: var(--neon-green);{% endif %} {% if coord.was_visited %}border-color: #555; box-shadow: none; filter: grayscale(100%);{% endif %}"></div>
+                             <div class="player-avatar" style="background-image: url('/static/myhehe{% if coord.player.avatar_id|stringformat:'s' != '0' %}{{ coord.player.avatar_id }}{% endif %}.png'); {% if coord.player == player %}border-color: var(--neon-green);{% endif %} {% if coord.was_visited %}border-color: #555; box-shadow: none; filter: grayscale(100%);{% endif %}"></div>
                              
                              <div class="sector-owner" {% if coord.player == player %}style="color: var(--neon-green);"{% endif %}>
                                  {{ coord.player.nickname }}
