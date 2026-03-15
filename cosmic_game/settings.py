@@ -89,9 +89,8 @@ USE_TZ = True
 
 # --- НАСТРОЙКА СТАТИКИ ---
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') # Папка, куда соберется вся статика для продакшена
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+STATICFILES_DIRS = [BASE_DIR / 'static'] 
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # --- НАСТРОЙКА WEBSOCKETS (CHANNELS) ---
 redis_url = os.environ.get('REDIS_URL')
