@@ -62,18 +62,6 @@
             display: flex; flex-direction: column; align-items: stretch; gap: 20px;
         }
 
-        .host-banner {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); 
-            padding: 18px; border-radius: 15px; font-family: 'Orbitron'; 
-            color: white; text-align: center; font-weight: 900; text-transform: uppercase;
-        }
-
-        .input-field, .room-code-box {
-            padding: 15px; background: rgba(0,0,0,0.3); 
-            border: 1px solid var(--glass-border); color: white; border-radius: 12px; 
-            font-family: 'Orbitron'; width: 100%; box-sizing: border-box;
-        }
-
         .btn-main { 
             padding: 18px; border: none; border-radius: 15px; cursor: pointer; 
             font-family: 'Orbitron'; font-weight: 900; width: 100%; 
@@ -88,20 +76,37 @@
         }
         .btn-danger-outline:hover { background: var(--danger-color); color: white; }
 
-        .custom-modal-overlay {
+        /* --- СТИЛИ МОДАЛОК --- */
+        .custom-modal-overlay, #rules-modal {
             display: none; position: fixed; z-index: 9999; left: 0; top: 0; 
             width: 100%; height: 100%; background: rgba(0,0,0,0.85); 
             backdrop-filter: blur(5px); justify-content: center; align-items: center;
         }
-        .custom-modal-box {
+        .custom-modal-box, .modal-box {
             background: #1e1e3f; padding: 40px; border-radius: 20px; 
-            border: 2px solid var(--danger-color); text-align: center; width: 400px;
+            border: 2px solid var(--danger-color); text-align: center; width: 450px;
         }
+        .modal-box { border-color: var(--primary-color); width: 550px; }
     </style>
 </head>
 <body>
 
 {% include 'game_app/header.html' %}
+
+<div id="rules-modal">
+    <div class="modal-box">
+        <h3 style="color: var(--primary-color); font-family: 'Orbitron'; margin-bottom: 20px;">ПРАВИЛА ИГРЫ</h3>
+        <div style="text-align: left; margin-bottom: 25px; color: #ddd; line-height: 1.6;">
+            <p>В игре участвуют 3–7 игроков и один Ведущий.</p>
+            <ul style="list-style-position: inside; padding: 0;">
+                <li><strong>Люди:</strong> Выберите безопасные координаты.</li>
+                <li><strong>Пришельцы:</strong> Заманите людей к себе.</li>
+                <li><strong>Ученый:</strong> Узнайте роль игрока.</li>
+            </ul>
+        </div>
+        <button class="btn-main btn-start" style="width:auto; padding: 10px 40px;" onclick="closeRules()">ПОНЯТНО</button>
+    </div>
+</div>
 
 <div id="confirm-modal" class="custom-modal-overlay">
     <div class="custom-modal-box">
@@ -135,7 +140,7 @@
 
         <div class="profile-section">
             {% if is_host %}
-                <div class="host-banner">Вы - ведущий</div>
+                <div style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); padding: 18px; border-radius: 15px; font-family: 'Orbitron'; color: white; text-align: center; font-weight: 900; text-transform: uppercase;">Вы - ведущий</div>
             {% else %}
                 <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 10px;">
                     <div id="avatar-preview" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid #fff; background-size: cover; background-position: center;"></div>
@@ -143,12 +148,12 @@
                 </div>
                 <form id="profile-update-form" style="display: flex; flex-direction: column; gap: 15px;">
                     <input type="hidden" id="avatar_id_input" value="{{ current_avatar_id }}">
-                    <input type="text" id="nickname_input" class="input-field" style="text-align: center;" value="{{ current_nickname }}" required>
+                    <input type="text" id="nickname_input" class="input-field" style="text-align: center; font-family:'Orbitron';" value="{{ current_nickname }}" required>
                     <button type="submit" class="btn-main btn-start">ОБНОВИТЬ</button>
                 </form>
             {% endif %}
 
-            <div class="room-code-box" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+            <div style="padding: 15px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: white; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
                 <span id="main-code" style="font-weight: 900; color: var(--primary-color); letter-spacing: 4px; font-size: 2.2rem;">******</span>
                 <div style="display: flex; gap: 15px; align-items: center;">
                     <button type="button" onclick="copyCode()" style="background:none; border:none; cursor:pointer; padding:0;">
@@ -166,7 +171,8 @@
                 {% if is_host %}
                     <button type="button" id="start-game-btn" class="btn-main btn-start" {% if player_count < 3 %}disabled{% endif %}>ЗАПУСК ИГРЫ</button>
                     <form id="delete-room-form" method="post" action="{% url 'game_lobby' %}" style="width: 100%;">
-                        {% csrf_token %}<input type="hidden" name="action" value="delete_room">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete_room">
                         <button type="button" class="btn-main btn-danger-outline" onclick="openConfirmModal('УНИЧТОЖИТЬ ЛОББИ?', 'form', 'delete-room-form')">РАСПУСТИТЬ ЛОББИ</button>
                     </form>
                 {% else %}
@@ -182,6 +188,9 @@
     const avatarFiles = ['/static/myhehe.png', '/static/myhehe1.png', '/static/myhehe2.png', '/static/myhehe3.png', '/static/myhehe4.png', '/static/myhehe6.png'];
     const isHost = {{ is_host|yesno:"true,false" }};
 
+    function openRules() { document.getElementById('rules-modal').style.display = 'flex'; }
+    function closeRules() { document.getElementById('rules-modal').style.display = 'none'; }
+
     function openConfirmModal(msg, type, payload) {
         document.getElementById('confirm-text').textContent = msg;
         document.getElementById('confirm-modal').style.display = 'flex';
@@ -193,7 +202,6 @@
     }
     function closeConfirmModal() { document.getElementById('confirm-modal').style.display = 'none'; }
 
-    // ФУНКЦИЯ КОПИРОВАНИЯ С ГАЛОЧКОЙ
     function copyCode() { 
         navigator.clipboard.writeText(realRoomCode); 
         const pathIcon = document.getElementById('copy-path');
@@ -251,7 +259,7 @@
     }
 
     function kickPlayer(id, name) { 
-        openConfirmModal(`ВЫБРОСИТЬ ${name} В ШЛЮЗ?`, 'callback', () => { 
+        openConfirmModal(`ВЫБРОСИТЬ ${name}?`, 'callback', () => { 
             socket.send(JSON.stringify({'type': 'kick_player', 'player_id': id})); 
             closeConfirmModal(); 
         }); 

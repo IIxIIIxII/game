@@ -34,28 +34,35 @@
     }
     .dropdown-content a:hover { background: #d946ef; }
 
-    /* --- СТИЛИ МОДАЛКИ ПОДДЕРЖКИ --- */
-    .support-modal { 
-        display: none; position: fixed; z-index: 2000; top: 0; left: 0; 
+    /* --- СТИЛИ МОДАЛОК (ПОДДЕРЖКА И ПОДТВЕРЖДЕНИЕ) --- */
+    .header-modal-overlay { 
+        display: none; position: fixed; z-index: 5000; top: 0; left: 0; 
         width: 100%; height: 100%; background: rgba(0,0,0,0.85); 
         backdrop-filter: blur(10px); align-items: center; justify-content: center; 
     }
-    .support-modal-content { 
+    .header-modal-content { 
         background: #1e1e3f; padding: 40px; border-radius: 25px; 
-        border: 1px solid #d946ef; width: 100%; max-width: 500px; 
-        display: flex; flex-direction: column; box-sizing: border-box;
+        border: 1px solid #d946ef; width: 100%; max-width: 450px; 
+        display: flex; flex-direction: column; box-sizing: border-box; text-align: center;
+        box-shadow: 0 0 30px rgba(217, 70, 239, 0.2);
     }
+    .h-modal-title { color: white; font-family: 'Orbitron'; font-size: 1.2rem; margin-bottom: 25px; text-transform: uppercase; }
+    
+    .h-modal-btns { display: flex; gap: 15px; }
+    .h-modal-btn {
+        flex: 1; padding: 15px; border: none; border-radius: 12px; cursor: pointer; 
+        font-family: 'Orbitron', sans-serif; font-weight: 900; transition: 0.3s; color: white;
+        text-transform: uppercase; font-size: 0.8rem;
+    }
+    .h-btn-cancel { background: #334155; }
+    .h-btn-confirm { background: #ff0055; box-shadow: 0 0 15px rgba(255, 0, 85, 0.3); }
+    .h-btn-confirm:hover { background: #ff2e74; transform: scale(1.02); }
+
     .support-input {
         width: 100%; padding: 15px; background: rgba(0,0,0,0.5); 
         border: 1px solid rgba(255, 255, 255, 0.1); color: white; 
         border-radius: 10px; outline: none; font-family: 'Orbitron', sans-serif; 
         box-sizing: border-box; transition: 0.3s; font-size: 0.9rem; margin-bottom: 15px;
-    }
-    .support-input:focus { border-color: #d946ef; background: rgba(0,0,0,0.7); }
-    .support-btn {
-        padding: 15px; border: none; border-radius: 15px; cursor: pointer; 
-        font-family: 'Orbitron', sans-serif; font-weight: 900; letter-spacing: 2px; 
-        transition: 0.3s; width: 100%; box-sizing: border-box; text-transform: uppercase; color: white;
     }
 </style>
 
@@ -81,6 +88,16 @@
     </div>
 </header>
 
+<div id="header-confirm-modal" class="header-modal-overlay">
+    <div class="header-modal-content">
+        <h3 id="h-confirm-title" class="h-modal-title">ВНИМАНИЕ</h3>
+        <div class="h-modal-btns">
+            <button class="h-modal-btn h-btn-cancel" onclick="closeHeaderConfirm()">ОТМЕНА</button>
+            <button id="h-confirm-yes-btn" class="h-modal-btn h-btn-confirm">ПОДТВЕРДИТЬ</button>
+        </div>
+    </div>
+</div>
+
 {% if is_host and game %}
 <form id="header-delete-room-form" method="post" action="{% url 'game_lobby' %}" style="display: none;">
     {% csrf_token %}
@@ -88,64 +105,68 @@
 </form>
 {% endif %}
 
-<div id="support-modal-box" class="support-modal">
-    <div class="support-modal-content">
-        <h3 style="color: white; font-family: 'Orbitron', sans-serif; text-align: center; margin-top: 0; margin-bottom: 25px;">СВЯЗЬ С ПОДДЕРЖКОЙ</h3>
-        <input type="text" id="support-name" class="support-input" placeholder="ВАШЕ ИМЯ" required>
-        <textarea id="support-text" class="support-input" style="margin-bottom: 20px; resize: none;" placeholder="ВАШЕ СООБЩЕНИЕ..." rows="5" required></textarea>
-        <div style="display: flex; gap: 10px;">
-            <button class="support-btn" style="background: #334155;" onclick="closeSupport()">ОТМЕНА</button>
-            <button class="support-btn" style="background: linear-gradient(135deg, #d946ef, #6366f1);" onclick="closeSupport()">ОТПРАВИТЬ</button>
+<div id="support-modal-box" class="header-modal-overlay">
+    <div class="header-modal-content">
+        <h3 class="h-modal-title">ТЕХПОДДЕРЖКА</h3>
+        <input type="text" id="support-name" class="support-input" placeholder="ВАШЕ ИМЯ">
+        <textarea id="support-text" class="support-input" style="resize: none;" placeholder="СООБЩЕНИЕ..." rows="4"></textarea>
+        <div class="h-modal-btns">
+            <button class="h-modal-btn h-btn-cancel" onclick="closeSupport()">ОТМЕНА</button>
+            <button class="h-modal-btn" style="background: linear-gradient(135deg, #d946ef, #6366f1);" onclick="closeSupport()">ОТПРАВИТЬ</button>
         </div>
     </div>
 </div>
 
 <script>
-    const headerMenuBtn = document.getElementById('headerMenuBtn');
-    const headerMenuDropdown = document.getElementById('headerMenuDropdown');
+    const hMenuBtn = document.getElementById('headerMenuBtn');
+    const hMenuDropdown = document.getElementById('headerMenuDropdown');
     
-    headerMenuBtn.addEventListener('click', (e) => { 
-        e.stopPropagation(); 
-        headerMenuDropdown.classList.toggle('active'); 
-    });
-    
-    window.addEventListener('click', () => { 
-        headerMenuDropdown.classList.remove('active'); 
-    });
+    hMenuBtn.onclick = (e) => { e.stopPropagation(); hMenuDropdown.classList.toggle('active'); };
+    window.onclick = () => { hMenuDropdown.classList.remove('active'); };
 
-    // --- ФУНКЦИИ ИЗ ТВОЕГО СТАРОГО КОДА, ТЕПЕРЬ ОНИ В ХЕДЕРЕ ---
-
+    // ОТКРЫТИЕ ПРАВИЛ
     function openRules() {
-        const modal = document.getElementById('rules-modal');
-        if (modal) modal.style.display = 'flex';
-        headerMenuDropdown.classList.remove('active');
+        const rules = document.getElementById('rules-modal');
+        if (rules) rules.style.display = 'flex';
+        hMenuDropdown.classList.remove('active');
     }
 
+    // ЛОГИКА МОДАЛКИ ПОДТВЕРЖДЕНИЯ
+    function showHeaderConfirm(title, onConfirm) {
+        document.getElementById('h-confirm-title').innerText = title;
+        document.getElementById('header-confirm-modal').style.display = 'flex';
+        hMenuDropdown.classList.remove('active');
+
+        document.getElementById('h-confirm-yes-btn').onclick = () => {
+            onConfirm();
+            closeHeaderConfirm();
+        };
+    }
+
+    function closeHeaderConfirm() { document.getElementById('header-confirm-modal').style.display = 'none'; }
+
+    // ФУНКЦИИ КНОПОК
     function leaveGame() {
-        if (confirm('Выйти из лобби?')) {
+        showHeaderConfirm('ПОКИНУТЬ ЭКИПАЖ?', () => {
             window.location.href = "{% url 'leave_game' game.room_code %}";
-        }
+        });
     }
 
     function disbandRoom() {
-        if (confirm('Уничтожить лобби? Это выкинет всех игроков.')) {
-            // Если мы в лобби - шлем форму, если в игре - через сокет (если он есть)
+        showHeaderConfirm('УНИЧТОЖИТЬ ЛОББИ?', () => {
+            // Сначала пробуем форму (если мы в лобби)
             const form = document.getElementById('header-delete-room-form');
             if (form) {
                 form.submit();
-            } else if (typeof safeSend === "function") {
-                // Если мы в игре и сокет активен
+            } 
+            // Если мы в игре, пробуем отправить сигнал через сокет (если он определен на странице)
+            else if (typeof safeSend === "function") {
                 safeSend({'type': 'disband_room'});
             }
-        }
+        });
     }
 
-    function openSupport(e) { 
-        e.preventDefault(); 
-        document.getElementById('support-modal-box').style.display = 'flex'; 
-        headerMenuDropdown.classList.remove('active');
-    }
-    function closeSupport() { 
-        document.getElementById('support-modal-box').style.display = 'none'; 
-    }
+    // ПОДДЕРЖКА
+    function openSupport(e) { e.preventDefault(); document.getElementById('support-modal-box').style.display = 'flex'; hMenuDropdown.classList.remove('active'); }
+    function closeSupport() { document.getElementById('support-modal-box').style.display = 'none'; }
 </script>
