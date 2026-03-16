@@ -3,7 +3,8 @@ from . import views
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path('lobby/<str:room_code>/', views.game_lobby, name='game_lobby'),
-    path('game/<str:room_code>/', views.game_room, name='game_room'),
+    path('lobby/', views.game_lobby, name='game_lobby'),
+    path('game/', views.game_room, name='game_room'),
     path('leave/<str:room_code>/', views.leave_game, name='leave_game'),
+    path('rematch/<str:old_room_code>/', views.create_rematch, name='create_rematch'),
 ]

@@ -126,6 +126,8 @@ class GameConsumer(WebsocketConsumer):
                     target_id = text_data_json.get('player_id')
                     try:
                         target = Player.objects.get(id=target_id, game=game)
+                        # Запоминаем session_id перед удалением, чтобы кикнуть конкретного игрока
+                        target_session_id = target.session_id 
                         target.delete()
                         
                         async_to_sync(self.channel_layer.group_send)(
@@ -134,7 +136,7 @@ class GameConsumer(WebsocketConsumer):
                         
                         async_to_sync(self.channel_layer.group_send)(
                             self.room_group_name, 
-                            {'type': 'player_kicked_event', 'kicked_id': int(target_id)}
+                            {'type': 'player_kicked_event', 'kicked_session_id': target_session_id}
                         )
                     except Player.DoesNotExist:
                         pass
@@ -280,7 +282,6 @@ class GameConsumer(WebsocketConsumer):
                     current_stage='lobby'
                 )
                 
-                # ВАЖНО: Фильтруем "призраков" по метке LEFT-
                 active_players = Player.objects.filter(game=old_game).exclude(session_id__startswith='LEFT-')
                 
                 for player in active_players:
@@ -294,7 +295,6 @@ class GameConsumer(WebsocketConsumer):
                 
                 new_url = reverse('game_lobby', kwargs={'room_code': new_room_code})
             
-            # ВАЖНО: Отправляем сигнал ПОСЛЕ завершения транзакции БД
             if new_url:
                 async_to_sync(self.channel_layer.group_send)(
                     self.room_group_name, 
@@ -315,7 +315,7 @@ class GameConsumer(WebsocketConsumer):
     def game_started(self, event):
         self.safe_send({
             'type': 'game_started',
-            'redirect_url': reverse('game_room', kwargs={'room_code': self.room_code})
+            'redirect_url': reverse('game_room')
         })
 
     def update_game_stage(self, event):
@@ -341,6 +341,13 @@ class GameConsumer(WebsocketConsumer):
 
     def room_disbanded(self, event):
         self.safe_send(event)
+        
+    # --- ДОБАВЛЕН ОБРАБОТЧИК УДАЛЕНИЯ КОМНАТЫ ИЗ VIEWS.PY ---
+    def game_aborted(self, event):
+        self.safe_send({
+            'type': 'game_aborted',
+            'message': event.get('message', 'Лобби распущено')
+        })
     
     def game_migration(self, event):
         self.safe_send({
@@ -349,4 +356,6 @@ class GameConsumer(WebsocketConsumer):
         })
         
     def player_kicked_event(self, event):
-        pass
+        # Если session_id совпадает с кикнутым — отправляем команду на редирект
+        if self.session_id == event.get('kicked_session_id'):
+            self.safe_send({'type': 'kicked'})

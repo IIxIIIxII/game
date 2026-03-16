@@ -66,7 +66,7 @@
         <button class="menu-btn" id="headerMenuBtn">МЕНЮ ▼</button>
         <div class="dropdown-content" id="headerMenuDropdown">
             {% if game %}
-                <a onclick="document.getElementById('rules-modal').style.display='flex'">ПРАВИЛА</a>
+                <a onclick="openRules()">ПРАВИЛА</a>
                 {% if not is_host %}
                     <a onclick="leaveGame()">ВЫЙТИ ИЗ ЛОББИ</a>
                 {% endif %}
@@ -80,6 +80,13 @@
         </div>
     </div>
 </header>
+
+{% if is_host and game %}
+<form id="header-delete-room-form" method="post" action="{% url 'game_lobby' %}" style="display: none;">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="delete_room">
+</form>
+{% endif %}
 
 <div id="support-modal-box" class="support-modal">
     <div class="support-modal-content">
@@ -105,6 +112,33 @@
     window.addEventListener('click', () => { 
         headerMenuDropdown.classList.remove('active'); 
     });
+
+    // --- ФУНКЦИИ ИЗ ТВОЕГО СТАРОГО КОДА, ТЕПЕРЬ ОНИ В ХЕДЕРЕ ---
+
+    function openRules() {
+        const modal = document.getElementById('rules-modal');
+        if (modal) modal.style.display = 'flex';
+        headerMenuDropdown.classList.remove('active');
+    }
+
+    function leaveGame() {
+        if (confirm('Выйти из лобби?')) {
+            window.location.href = "{% url 'leave_game' game.room_code %}";
+        }
+    }
+
+    function disbandRoom() {
+        if (confirm('Уничтожить лобби? Это выкинет всех игроков.')) {
+            // Если мы в лобби - шлем форму, если в игре - через сокет (если он есть)
+            const form = document.getElementById('header-delete-room-form');
+            if (form) {
+                form.submit();
+            } else if (typeof safeSend === "function") {
+                // Если мы в игре и сокет активен
+                safeSend({'type': 'disband_room'});
+            }
+        }
+    }
 
     function openSupport(e) { 
         e.preventDefault(); 

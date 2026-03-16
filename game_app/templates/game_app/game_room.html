@@ -298,7 +298,7 @@
                             <h1 style="font-size:3rem;">{% if game.game_over_status == 'aliens_win' %}ФЛОТ УНИЧТОЖЕН{% else %}ПОБЕДА{% endif %}</h1>
                             {% if is_host %}
                             <div style="margin-top:20px;">
-                                <button class="cyber-btn primary action-btn" id="rematch-btn">НОВАЯ МИССИЯ</button>
+                                <a href="{% url 'create_rematch' game.room_code %}" class="cyber-btn primary" style="text-decoration:none; display:inline-block;">НОВАЯ МИССИЯ</a>
                                 <button class="cyber-btn action-btn" id="disband-room-btn" style="border-color:var(--neon-red)">Выход</button>
                             </div>
                             {% else %}

@@ -18,10 +18,10 @@ def index(request):
     
     session_id = request.session['session_id']
     
-    # Проверяем, не в игре ли пользователь уже
     active_game = Player.objects.filter(session_id=session_id).exclude(game__current_stage='game_over').first()
     if active_game:
-        return redirect('game_lobby', room_code=active_game.game.room_code)
+        request.session['room_code'] = active_game.game.room_code
+        return redirect('game_lobby')
     
     if request.method == "POST":
         nickname = request.POST.get('nickname')
@@ -53,7 +53,8 @@ def create_game(request):
         return redirect('index')
 
     game = GameSession.objects.create(host_session=session_id)
-    return redirect('game_lobby', room_code=game.room_code)
+    request.session['room_code'] = game.room_code
+    return redirect('game_lobby')
 
 def join_game(request):
     session_id = request.session.get('session_id')
@@ -91,19 +92,24 @@ def join_game(request):
             f'game_{game.room_code}',
             {'type': 'player_list_update'}
         )
-
-        return redirect('game_lobby', room_code=game.room_code)
+        
+        request.session['room_code'] = game.room_code
+        return redirect('game_lobby')
 
     except GameSession.DoesNotExist:
         messages.error(request, "Комната с таким кодом не найдена!")
         return redirect('index')
 
-def game_lobby(request, room_code):
-    session_id = request.session.get('session_id')
+def game_lobby(request):
+    room_code = request.session.get('room_code')
+    if not room_code:
+        return redirect('index')
+        
     game = get_object_or_404(GameSession, room_code=room_code)
+    session_id = request.session.get('session_id')
 
     if game.current_stage != 'lobby':
-        return redirect('game_room', room_code=game.room_code)
+        return redirect('game_room')
 
     players = game.players.all()
     
@@ -137,7 +143,7 @@ def game_lobby(request, room_code):
                     )
                 
                 messages.success(request, "Данные успешно обновлены!")
-                return redirect('game_lobby', room_code=room_code)
+                return redirect('game_lobby')
         
         elif action == 'delete_room' and is_host:
             channel_layer = get_channel_layer()
@@ -163,9 +169,13 @@ def game_lobby(request, room_code):
     }
     return render(request, 'game_app/lobby.html', context)
 
-def game_room(request, room_code):
-    session_id = request.session.get('session_id')
+def game_room(request):
+    room_code = request.session.get('room_code')
+    if not room_code:
+        return redirect('index')
+        
     game = get_object_or_404(GameSession, room_code=room_code)
+    session_id = request.session.get('session_id')
     
     is_host = (session_id == game.host_session)
     player = Player.objects.filter(session_id=session_id, game=game).first()
@@ -192,29 +202,72 @@ def game_room(request, room_code):
     }
     return render(request, 'game_app/game_room.html', context)
 
+# ИСПРАВЛЕННАЯ ФУНКЦИЯ (добавлен room_code)
 def leave_game(request, room_code):
     session_id = request.session.get('session_id')
-    try:
-        game = GameSession.objects.get(room_code=room_code)
-        player = Player.objects.filter(session_id=session_id, game=game).first()
+    
+    if room_code:
+        try:
+            game = GameSession.objects.get(room_code=room_code)
+            player = Player.objects.filter(session_id=session_id, game=game).first()
 
-        if player:
-            if game.current_stage == 'lobby':
-                player.delete()
-            else:
-                # ВАЖНО: Формат "LEFT-ID" для надежной фильтрации
-                player.session_id = f"LEFT-{player.id}"
-                player.save()
+            if player:
+                if game.current_stage == 'lobby':
+                    player.delete()
+                else:
+                    player.session_id = f"LEFT-{player.id}"
+                    player.save()
+            
+            # Сообщаем остальным, что список игроков изменился
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f'game_{room_code}',
+                {'type': 'player_list_update'}
+            )
 
-        # Очищаем только привязку к комнате, ник и аву оставляем
-        keys_to_remove = ['room_code', 'is_host']
-        for key in keys_to_remove:
-            if key in request.session:
-                del request.session[key]
+        except (GameSession.DoesNotExist, Player.DoesNotExist):
+            pass
 
-        request.session.modified = True
+    keys_to_remove = ['room_code', 'is_host']
+    for key in keys_to_remove:
+        if key in request.session:
+            del request.session[key]
 
-    except (GameSession.DoesNotExist, Player.DoesNotExist):
-        pass
-
+    request.session.modified = True
     return redirect('index')
+
+def create_rematch(request, old_room_code):
+    session_id = request.session.get('session_id')
+    old_game = get_object_or_404(GameSession, room_code=old_room_code)
+    
+    # Только хост может создать реванш
+    if session_id != old_game.host_session:
+        return redirect('index')
+
+    # 1. Создаем абсолютно новую игровую сессию
+    new_game = GameSession.objects.create(host_session=session_id)
+    
+    # 2. Перекидываем всех игроков из старой базы в новую
+    players = old_game.players.all()
+    for player in players:
+        player.game = new_game
+        player.has_voted = False # Сбрасываем флаги
+        player.special_used = False
+        player.save()
+    
+    # 3. Отправляем сигнал всем игрокам в старой комнате
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f'game_{old_room_code}',
+        {
+            'type': 'game_migration',
+            'new_url': '/lobby/'  # Всех кинет в лобби
+        }
+    )
+    
+    # 4. Удаляем старую игру, чтобы не копился мусор
+    old_game.delete()
+    
+    # 5. Обновляем сессию хоста и ведем в новое лобби
+    request.session['room_code'] = new_game.room_code
+    return redirect('game_lobby')
