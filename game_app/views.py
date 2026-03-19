@@ -18,9 +18,17 @@ def index(request):
     
     session_id = request.session['session_id']
     
+    # 1. Проверяем, не в игре ли пользователь как игрок
     active_game = Player.objects.filter(session_id=session_id).exclude(game__current_stage='game_over').first()
     if active_game:
         request.session['room_code'] = active_game.game.room_code
+        return redirect('game_lobby')
+        
+    # 2. ПРОВЕРКА ДЛЯ ХОСТА (Вот этого не хватало!)
+    # Если ты создатель активной игры, возвращайся в лобби
+    hosted_game = GameSession.objects.filter(host_session=session_id).exclude(current_stage='game_over').first()
+    if hosted_game:
+        request.session['room_code'] = hosted_game.room_code
         return redirect('game_lobby')
     
     if request.method == "POST":
@@ -240,18 +248,19 @@ def create_rematch(request, old_room_code):
     session_id = request.session.get('session_id')
     old_game = get_object_or_404(GameSession, room_code=old_room_code)
     
-    # Только хост может создать реванш
     if session_id != old_game.host_session:
         return redirect('index')
 
     # 1. Создаем абсолютно новую игровую сессию
     new_game = GameSession.objects.create(host_session=session_id)
     
-    # 2. Перекидываем всех игроков из старой базы в новую
-    players = old_game.players.all()
-    for player in players:
+    # 2. ИСПРАВЛЕНИЕ: Берем только тех игроков, которые НЕ вышли
+    # Исключаем тех, у кого session_id начинается с 'LEFT-'
+    active_players = old_game.players.exclude(session_id__startswith='LEFT-')
+    
+    for player in active_players:
         player.game = new_game
-        player.has_voted = False # Сбрасываем флаги
+        player.has_voted = False
         player.special_used = False
         player.save()
     
@@ -261,13 +270,13 @@ def create_rematch(request, old_room_code):
         f'game_{old_room_code}',
         {
             'type': 'game_migration',
-            'new_url': '/lobby/'  # Всех кинет в лобби
+            'new_url': '/' 
         }
     )
     
-    # 4. Удаляем старую игру, чтобы не копился мусор
+    # 4. Удаляем старую игру
     old_game.delete()
     
-    # 5. Обновляем сессию хоста и ведем в новое лобби
+    # 5. Обновляем сессию хоста
     request.session['room_code'] = new_game.room_code
     return redirect('game_lobby')

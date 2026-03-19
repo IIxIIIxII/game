@@ -154,14 +154,12 @@
 
     function disbandRoom() {
         showHeaderConfirm('УНИЧТОЖИТЬ ЛОББИ?', () => {
-            // Сначала пробуем форму (если мы в лобби)
-            const form = document.getElementById('header-delete-room-form');
-            if (form) {
-                form.submit();
-            } 
-            // Если мы в игре, пробуем отправить сигнал через сокет (если он определен на странице)
-            else if (typeof safeSend === "function") {
+            // ИСПРАВЛЕНИЕ: Проверяем URL. Если мы в игре, используем сокет. Иначе — форму.
+            if (window.location.pathname.includes('/game/') && typeof safeSend === "function") {
                 safeSend({'type': 'disband_room'});
+            } else {
+                const form = document.getElementById('header-delete-room-form');
+                if (form) form.submit();
             }
         });
     }

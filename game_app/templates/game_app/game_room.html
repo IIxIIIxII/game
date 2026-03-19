@@ -8,11 +8,10 @@
     <style>
         :root {
             --neon-blue: #00f3ff;
-            --neon-purple: #d946ef; /* Изменил на цвет из лобби для единого стиля */
-            --neon-red: #ef4444;    /* Изменил на цвет из лобби */
-            --neon-green: #10b981;  /* Изменил на цвет из лобби */
+            --neon-purple: #d946ef; 
+            --neon-red: #ef4444;    
+            --neon-green: #10b981;  
             
-            /* Новые переменные для прозрачного дизайна */
             --glass-bg: rgba(0, 0, 0, 0.4); 
             --glass-border: rgba(255, 255, 255, 0.1);
         }
@@ -24,13 +23,11 @@
             height: 100vh; overflow: hidden;
             color: #e0e0e0;
             
-            /* --- НОВЫЙ ФОН --- */
             background: url('/static/bg.jpg') no-repeat center center fixed;
             background-size: cover;
             position: relative;
         }
 
-        /* Затемнение поверх фона */
         body::after {
             content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.3); z-index: -1;
@@ -38,7 +35,6 @@
 
         .page-layout { display: flex; height: 100%; gap: 20px; }
         
-        /* --- ПРОЗРАЧНЫЕ ОКНА --- */
         .game-interface { 
             flex: 3; 
             background: var(--glass-bg); 
@@ -87,7 +83,6 @@
 
         .galaxy-map { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 30px; overflow-y: auto; height: 100%; }
 
-        /* Карточки секторов */
         .sector-card {
             background: rgba(0, 0, 0, 0.4); 
             border: 1px solid var(--glass-border); 
@@ -131,7 +126,12 @@
             box-shadow: 0 0 60px rgba(0, 243, 255, 0.4); flex-shrink: 0;
         }
 
-        #custom-modal, #rules-modal { display: none; position: fixed; z-index: 5000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); justify-content: center; align-items: center; }
+        /* Общие стили для модалок */
+        #custom-modal, #rules-modal, #alert-modal { 
+            display: none; position: fixed; z-index: 5000; left: 0; top: 0; 
+            width: 100%; height: 100%; background: rgba(0,0,0,0.85); 
+            backdrop-filter: blur(5px); justify-content: center; align-items: center; 
+        }
         .modal-box { 
             background: rgba(15, 15, 25, 0.95); width: 500px; padding: 30px; border-radius: 15px; 
             border: 2px solid var(--neon-blue); text-align: center; box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
@@ -151,7 +151,6 @@
         .m-cancel { background: transparent; border: 2px solid #555; color: #aaa; }
         .m-cancel:hover { border-color: #fff; color: #fff; }
 
-        /* Панель хоста */
         .host-actions { position: absolute; bottom: 0; width: 100%; padding: 20px; background: rgba(0,0,0,0.6); display: flex; justify-content: center; gap: 15px; backdrop-filter: blur(10px); border-top: 1px solid var(--glass-border); }
         
         .cyber-btn { background: rgba(0,0,0,0.5); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 12px 25px; font-family: 'Rajdhani'; font-size: 1.1rem; cursor: pointer; transition: 0.2s; border-radius: 8px;}
@@ -159,7 +158,6 @@
         .cyber-btn.primary { border-color: var(--neon-blue); color: var(--neon-blue); }
         .cyber-btn.primary:hover { background: var(--neon-blue); color: #000; }
 
-        /* Чат */
         #chat-log { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; font-size: 0.9rem; }
         .msg { padding: 8px; border-radius: 8px; border-left: 2px solid #555; background: rgba(0,0,0,0.3); }
         .msg strong { color: var(--neon-blue); }
@@ -176,6 +174,14 @@
     {% include 'game_app/header.html' %}
 
     <div id="status-bar"></div>
+
+    <div id="alert-modal">
+        <div class="modal-box" style="border-color: var(--neon-red); box-shadow: 0 0 30px rgba(239, 68, 68, 0.2);">
+            <h3 style="color: var(--neon-red);">СВЯЗЬ ПРЕРВАНА</h3>
+            <p id="alert-message" style="color: #ddd; font-size: 1.2rem; margin-bottom: 25px;"></p>
+            <button id="alert-ok-btn" class="m-btn" style="background: var(--neon-red); color: white; width: 100%;">ПРИНЯТЬ</button>
+        </div>
+    </div>
 
     <div id="custom-modal">
         <div class="modal-box">
@@ -278,7 +284,7 @@
                 {% elif game.current_stage == 'voting' %}
                     <div class="galaxy-map">
                         {% for coord in game.coordinates.all %}
-                        <div class="sector-card {% if coord.was_visited or player.has_voted or coord.player == player %}disabled{% endif %}" style="position: relative;">
+                        <div class="sector-card {% if coord.was_visited or player.has_voted or coord.player == player %}disabled{% endif %}" style="position: relative; {% if is_host %}pointer-events: none;{% endif %}">
                              <div class="player-avatar" style="background-image: url('/static/myhehe{% if coord.player.avatar_id|stringformat:'s' != '0' %}{{ coord.player.avatar_id }}{% endif %}.png'); {% if coord.player == player %}border-color: var(--neon-green);{% endif %} {% if coord.was_visited %}border-color: #555; box-shadow: none; filter: grayscale(100%);{% endif %}"></div>
                              
                              <div class="sector-owner" {% if coord.player == player %}style="color: var(--neon-green);"{% endif %}>
@@ -292,7 +298,7 @@
                                 <div class="offline-tag">OFFLINE</div>
                              {% endif %}
                              
-                             {% if not player.has_voted and coord.player != player and not coord.was_visited %}
+                             {% if not is_host and not player.has_voted and coord.player != player and not coord.was_visited %}
                                  <div class="vote-overlay">
                                      <button class="btn-vote action-btn vote-btn" data-coord-id="{{ coord.id }}">ЦЕЛЬ</button>
                                  </div>
@@ -342,6 +348,7 @@
 
     <script>
         const roomCode = '{{ game.room_code }}';
+        const leaveUrl = "{% url 'leave_game' game.room_code %}";
         const isHost = {{ is_host|yesno:"true,false" }};
         const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
         let gameSocket = null;
@@ -351,6 +358,15 @@
             statusBar.textContent = msg;
             statusBar.className = type === 'error' ? 'status-error' : 'status-connecting';
             statusBar.style.display = 'block';
+        }
+
+        // Функция вызова кастомного окна уведомлений
+        function showCustomAlert(message, redirectUrl) {
+            document.getElementById('alert-message').innerText = message;
+            document.getElementById('alert-modal').style.display = 'flex';
+            document.getElementById('alert-ok-btn').onclick = () => {
+                window.location.href = redirectUrl;
+            };
         }
 
         function toggleButtons(enabled) {
@@ -372,8 +388,12 @@
                 const data = JSON.parse(e.data);
                 
                 if (data.type === 'game_migration') {
-                    showStatus('ПЕРЕХОД В НОВЫЙ СЕКТОР...', 'connecting');
-                    window.location.href = data.new_url;
+                    if (!isHost) {
+                        showStatus('ПЕРЕХОД В НОВЫЙ СЕКТОР...', 'connecting');
+                        window.location.href = data.new_url;
+                    } else {
+                        showStatus('СОЗДАНИЕ СЕКТОРА...', 'connecting');
+                    }
                     return;
                 }
 
@@ -402,8 +422,8 @@
                     log.scrollTop = log.scrollHeight;
                 }
                 else if (data.type === 'game_aborted' || data.type === 'room_disbanded') {
-                    alert(data.message || 'Игра завершена ведущим.');
-                    window.location.href = "{% url 'index' %}";
+                    // ИСПРАВЛЕНО: Вызов кастомного модального окна вместо стандартного alert
+                    showCustomAlert(data.message || 'Игра завершена ведущим.', "{% url 'index' %}");
                 }
             };
         }
@@ -442,6 +462,26 @@
             } else {
                 chatPanel.style.display = 'none';
                 toggleBtn.innerHTML = '◀'; 
+            }
+        }
+
+        function leaveGame() {
+            if (typeof showHeaderConfirm === "function") {
+                showHeaderConfirm('ПОКИНУТЬ ИГРУ? ПЕРСОНАЖ ОСТАНЕТСЯ НА ПОЛЕ.', () => {
+                    window.location.href = leaveUrl;
+                });
+            } else {
+                if (confirm('Покинуть игру? Персонаж останется на поле.')) window.location.href = leaveUrl;
+            }
+        }
+
+        function disbandRoom() {
+            if (typeof showHeaderConfirm === "function") {
+                showHeaderConfirm('УНИЧТОЖИТЬ ЛОББИ? ЭТО ВЫКИНЕТ ВСЕХ ИГРОКОВ.', () => {
+                    safeSend({'type': 'disband_room'});
+                });
+            } else {
+                 if (confirm('Уничтожить лобби? Это выкинет всех игроков.')) safeSend({'type': 'disband_room'});
             }
         }
 

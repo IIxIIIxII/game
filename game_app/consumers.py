@@ -118,7 +118,7 @@ class GameConsumer(WebsocketConsumer):
                 elif message_type == 'disband_room':
                     async_to_sync(self.channel_layer.group_send)(
                         self.room_group_name,
-                        { 'type': 'room_disbanded', 'message': 'Ведущий распустил комнату.' }
+                        { 'type': 'room_disbanded' }
                     )
                     game.delete()
                 
