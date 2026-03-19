@@ -120,10 +120,16 @@
 
         .offline-tag { font-family: 'Orbitron'; color: var(--neon-red); font-weight: bold; border: 1px solid var(--neon-red); padding: 2px 5px; font-size: 0.7rem; position: absolute; top: 10px; left: 10px; transform: rotate(-15deg); border-radius: 4px;}
         
-        .results-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 30px; }
-        .arrival-visual {
-            width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, var(--neon-blue), transparent);
-            box-shadow: 0 0 60px rgba(0, 243, 255, 0.4); flex-shrink: 0;
+        .results-container { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100%; 
+            text-align: center; 
+            gap: 30px;
+            position: relative;
+            overflow: hidden;
         }
 
         /* Общие стили для модалок */
@@ -167,6 +173,48 @@
         #status-bar { position: fixed; top: 0; width: 100%; text-align: center; font-family: 'Orbitron'; z-index: 9999; display: none; padding: 5px; }
         .status-connecting { background: #f39c12; color: #000; }
         .status-error { background: #e74c3c; color: #fff; }
+
+        /* Новые стили для анимаций */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); color: var(--neon-blue); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes warpOut {
+            0% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.2); filter: brightness(1.5) blur(5px); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+        
+        .fullscreen-gif {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .content-over-gif {
+            position: relative;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(3px);
+        }
     </style>
 </head>
 <body>
@@ -308,33 +356,105 @@
                     </div>
                     {% if is_host %}<div class="host-actions"><button class="cyber-btn primary action-btn" id="next-stage-btn">Итоги</button></div>{% endif %}
 
-                {% elif game.current_stage == 'results' %}
-                    <div class="results-container">
-                        {% if last_visited_coord %}
-                            <h3 style="color: var(--neon-blue); margin: 0;">ПРОТОКОЛ ПРИБЫТИЯ</h3>
-                            <div class="arrival-visual"></div>
-                            <h1 style="font-family: 'Orbitron'; letter-spacing: 5px; color: #fff; margin: 0;">
-                                {{ last_visited_coord.coordinate_name|upper }}
-                            </h1>
-                        {% endif %}
-                    </div>
-                    {% if is_host %}<div class="host-actions"><button class="cyber-btn primary action-btn" id="next-stage-btn">След. Раунд</button></div>{% endif %}
-                
-                {% elif game.current_stage == 'game_over' %}
-                    <div style="display:flex; height:100%; align-items:center; justify-content:center; text-align:center;">
-                        <div style="background: rgba(0,0,0,0.6); padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
-                            <h1 style="font-size:3rem; margin-top: 0;">{% if game.game_over_status == 'aliens_win' %}<span style="color: var(--neon-red);">ФЛОТ УНИЧТОЖЕН</span>{% else %}<span style="color: var(--neon-green);">ПОБЕДА</span>{% endif %}</h1>
-                            {% if is_host %}
-                            <div style="margin-top:20px; display: flex; gap: 15px; justify-content: center;">
-                                <a href="{% url 'create_rematch' game.room_code %}" class="cyber-btn primary" style="text-decoration:none; display:inline-block;">НОВАЯ МИССИЯ</a>
-                                <button class="cyber-btn action-btn" onclick="disbandRoom()" style="border-color:var(--neon-red)">ВЫХОД</button>
-                            </div>
+                {% elif game.current_stage == 'results' or game.current_stage == 'game_over' %}
+                    <div class="results-container" id="results-container">
+                        <img src="/static/warp.gif" class="fullscreen-gif" id="arrival-gif" alt="Warp drive">
+                        
+                        <div class="content-over-gif" id="countdown-block">
+                            <h3 style="color: var(--neon-blue); margin: 20px 0 10px 0;">РАСЧЕТ ТРАЕКТОРИИ</h3>
+                            <div id="countdown" style="font-size: 5rem; font-family: 'Orbitron'; color: var(--neon-purple); text-shadow: 0 0 20px var(--neon-purple); margin: 20px 0;">5</div>
+                            <div style="font-size: 1.2rem; color: #aaa;">ПРЫЖОК ЧЕРЕЗ ГИПЕРПРОСТРАНСТВО</div>
+                        </div>
+
+                        <div class="content-over-gif" id="result-block" style="display: none;">
+                            {% if last_visited_coord %}
+                                <h3 style="color: {% if last_visited_coord.player.role == 'alien' %}var(--neon-red){% else %}var(--neon-blue){% endif %}; margin: 0; letter-spacing: 2px;">
+                                    {% if last_visited_coord.player.role == 'alien' %}ФЛОТ УНИЧТОЖЕН{% else %}ПРОТОКОЛ ПРИБЫТИЯ{% endif %}
+                                </h3>
+                                
+                                <div class="player-avatar" style="width: 140px; height: 140px; margin: 20px 0 10px 0; background-image: url('/static/myhehe{% if last_visited_coord.player.avatar_id|stringformat:'s' != '0' %}{{ last_visited_coord.player.avatar_id }}{% endif %}.png'); border-color: {% if last_visited_coord.player.role == 'alien' %}var(--neon-red){% else %}var(--neon-purple){% endif %}; box-shadow: 0 0 40px {% if last_visited_coord.player.role == 'alien' %}rgba(239, 68, 68, 0.5){% else %}rgba(217, 70, 239, 0.5){% endif %};"></div>
+                                
+                                <div style="font-size: 1.8rem; color: {% if last_visited_coord.player.role == 'alien' %}var(--neon-red){% else %}var(--neon-purple){% endif %}; font-weight: bold; font-family: 'Orbitron'; text-transform: uppercase; letter-spacing: 2px;">
+                                    {{ last_visited_coord.player.nickname }}
+                                </div>
+                                
+                                <h1 style="font-family: 'Orbitron'; letter-spacing: 5px; color: #fff; margin: 12px 0 0 0; font-size: 2.5rem; text-shadow: 0 0 20px rgba(255,255,255,0.3);">
+                                    {{ last_visited_coord.coordinate_name|upper }}
+                                </h1>
+                            {% endif %}
+
+                            {% if game.current_stage == 'game_over' %}
+                                <div style="margin-top: 40px;">
+                                    <h2 style="font-size: 2rem; margin-top: 0; margin-bottom: 20px;">
+                                        {% if game.game_over_status == 'aliens_win' %}
+                                            <span style="color: var(--neon-red); text-shadow: 0 0 15px var(--neon-red);">ПОБЕДА ПРИШЕЛЬЦЕВ</span>
+                                        {% else %}
+                                            <span style="color: var(--neon-green); text-shadow: 0 0 15px var(--neon-green);">ПОБЕДА ЛЮДЕЙ</span>
+                                        {% endif %}
+                                    </h2>
+                                    
+                                    {% if is_host %}
+                                    <div style="display: flex; gap: 15px; justify-content: center;">
+                                        <a href="{% url 'create_rematch' game.room_code %}" class="cyber-btn primary" style="text-decoration:none; display:inline-block;">НОВАЯ МИССИЯ</a>
+                                        <button class="cyber-btn action-btn" onclick="disbandRoom()" style="border-color:var(--neon-red)">ВЫХОД</button>
+                                    </div>
+                                    {% else %}
+                                    <p style="margin-top:10px; font-size: 1.1rem; color: #aaa;">Ожидание решения командования...</p>
+                                    <a href="{% url 'index' %}" class="cyber-btn" style="margin-top:10px; display:inline-block; text-decoration:none; border-color:var(--neon-red);">ВЫХОД</a>
+                                    {% endif %}
+                                </div>
                             {% else %}
-                            <p style="margin-top:20px; font-size: 1.2rem;">Ожидание решения командования...</p>
-                            <a href="{% url 'index' %}" class="cyber-btn" style="margin-top:15px; display:inline-block; text-decoration:none; border-color:var(--neon-red);">ВЫХОД</a>
+                                {% if is_host %}
+                                <div style="margin-top: 40px;">
+                                    <button class="cyber-btn primary action-btn" id="next-stage-btn">След. Раунд</button>
+                                </div>
+                                {% endif %}
                             {% endif %}
                         </div>
                     </div>
+
+                    <script>
+                    (function() {
+                        const countdownElement = document.getElementById('countdown');
+                        const countdownBlock = document.getElementById('countdown-block');
+                        const resultBlock = document.getElementById('result-block');
+                        const arrivalGif = document.getElementById('arrival-gif');
+                        
+                        let count = 5;
+                        
+                        function updateCountdown() {
+                            if (count > 0) {
+                                if (countdownElement) {
+                                    countdownElement.textContent = count;
+                                    countdownElement.style.animation = 'pulse 0.5s ease';
+                                    setTimeout(() => {
+                                        if (countdownElement) countdownElement.style.animation = '';
+                                    }, 500);
+                                }
+                                count--;
+                                setTimeout(updateCountdown, 1000);
+                            } else {
+                                if (countdownElement) countdownElement.textContent = '0';
+                                setTimeout(() => {
+                                    if (countdownBlock) countdownBlock.style.display = 'none';
+                                    if (resultBlock) {
+                                        resultBlock.style.display = 'flex';
+                                        resultBlock.style.animation = 'fadeIn 0.8s ease';
+                                    }
+                                    
+                                    if (arrivalGif) {
+                                        arrivalGif.style.animation = 'warpOut 1s ease';
+                                        setTimeout(() => {
+                                            arrivalGif.style.animation = '';
+                                        }, 1000);
+                                    }
+                                }, 500);
+                            }
+                        }
+                        
+                        updateCountdown();
+                    })();
+                    </script>
                 {% endif %}
             </div>
         </div>
@@ -360,7 +480,6 @@
             statusBar.style.display = 'block';
         }
 
-        // Функция вызова кастомного окна уведомлений
         function showCustomAlert(message, redirectUrl) {
             document.getElementById('alert-message').innerText = message;
             document.getElementById('alert-modal').style.display = 'flex';
@@ -422,7 +541,6 @@
                     log.scrollTop = log.scrollHeight;
                 }
                 else if (data.type === 'game_aborted' || data.type === 'room_disbanded') {
-                    // ИСПРАВЛЕНО: Вызов кастомного модального окна вместо стандартного alert
                     showCustomAlert(data.message || 'Игра завершена ведущим.', "{% url 'index' %}");
                 }
             };
