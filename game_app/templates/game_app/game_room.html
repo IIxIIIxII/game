@@ -8,35 +8,61 @@
     <style>
         :root {
             --neon-blue: #00f3ff;
-            --neon-purple: #bc13fe;
-            --neon-red: #ff0055;
-            --neon-green: #0aff00;
-            --bg-dark: #05050a;
-            --glass: rgba(20, 20, 35, 0.7);
+            --neon-purple: #d946ef; /* Изменил на цвет из лобби для единого стиля */
+            --neon-red: #ef4444;    /* Изменил на цвет из лобби */
+            --neon-green: #10b981;  /* Изменил на цвет из лобби */
+            
+            /* Новые переменные для прозрачного дизайна */
+            --glass-bg: rgba(0, 0, 0, 0.4); 
+            --glass-border: rgba(255, 255, 255, 0.1);
         }
 
         * { box-sizing: border-box; }
         body {
             font-family: 'Rajdhani', sans-serif;
-            background-color: var(--bg-dark);
-            background-image: 
-                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 3px),
-                radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 3px);
-            background-size: 550px 550px, 350px 350px;
-            color: #e0e0e0; margin: 0; 
+            margin: 0; padding: 100px 20px 20px 20px;
             height: 100vh; overflow: hidden;
-            padding: 100px 20px 20px 20px;
+            color: #e0e0e0;
+            
+            /* --- НОВЫЙ ФОН --- */
+            background: url('/static/bg.jpg') no-repeat center center fixed;
+            background-size: cover;
+            position: relative;
+        }
+
+        /* Затемнение поверх фона */
+        body::after {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.3); z-index: -1;
         }
 
         .page-layout { display: flex; height: 100%; gap: 20px; }
-        .game-interface { flex: 3; background: var(--glass); border: 1px solid rgba(0, 243, 255, 0.2); border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-        .comm-link { flex: 1; background: rgba(10, 10, 15, 0.9); border-left: 2px solid var(--neon-purple); border-radius: 15px; display: flex; flex-direction: column; transition: 0.3s; }
+        
+        /* --- ПРОЗРАЧНЫЕ ОКНА --- */
+        .game-interface { 
+            flex: 3; 
+            background: var(--glass-bg); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 15px; 
+            display: flex; flex-direction: column; overflow: hidden; position: relative;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        
+        .comm-link { 
+            flex: 1; 
+            background: var(--glass-bg); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 15px; 
+            display: flex; flex-direction: column; transition: 0.3s; 
+            backdrop-filter: blur(20px);
+        }
 
         h2, h3 { font-family: 'Orbitron', sans-serif; text-transform: uppercase; margin: 0; }
         
         .header-panel { 
             padding: 20px; 
-            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
@@ -51,69 +77,63 @@
 
         .chat-toggle-edge {
             position: absolute; right: 0; top: 50%; transform: translateY(-50%);
-            background: rgba(20, 20, 35, 0.9); border: 1px solid var(--neon-purple); border-right: none;
+            background: rgba(0, 0, 0, 0.6); border: 1px solid var(--neon-purple); border-right: none;
             color: var(--neon-purple); width: 35px; height: 90px; border-radius: 15px 0 0 15px;
             display: flex; align-items: center; justify-content: center; cursor: pointer;
-            z-index: 1000; font-size: 1.2rem; transition: 0.3s; box-shadow: -5px 0 15px rgba(188, 19, 254, 0.15);
+            z-index: 1000; font-size: 1.2rem; transition: 0.3s;
+            backdrop-filter: blur(10px);
         }
-        .chat-toggle-edge:hover { background: var(--neon-purple); color: #fff; box-shadow: -5px 0 25px rgba(188, 19, 254, 0.5); width: 45px; }
+        .chat-toggle-edge:hover { background: var(--neon-purple); color: #fff; width: 45px; }
 
         .galaxy-map { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 30px; overflow-y: auto; height: 100%; }
 
+        /* Карточки секторов */
         .sector-card {
-            background: rgba(20, 25, 40, 0.8); border: 1px solid #444; border-radius: 10px; padding: 25px; text-align: center; position: relative; transition: 0.3s;
-            display: flex; flex-direction: column;
-            justify-content: start; 
-            align-items: center;
+            background: rgba(0, 0, 0, 0.4); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 10px; padding: 25px; text-align: center; position: relative; transition: 0.3s;
+            display: flex; flex-direction: column; justify-content: start; align-items: center;
         }
-        .sector-card:not(.disabled):hover { transform: translateY(-5px); border-color: var(--neon-blue); box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); }
-        .sector-card.disabled { opacity: 0.5; filter: grayscale(80%); border-color: #333; background: rgba(0,0,0,0.5); pointer-events: none; }
+        .sector-card:not(.disabled):hover { transform: translateY(-5px); border-color: var(--neon-blue); background: rgba(0, 0, 0, 0.6); }
+        .sector-card.disabled { opacity: 0.6; filter: grayscale(50%); border-color: rgba(255,255,255,0.05); background: rgba(0,0,0,0.7); pointer-events: none; }
 
-        /* --- ОБНОВЛЕННЫЕ СТИЛИ КАРТОЧЕК --- */
         .player-avatar { 
             width: 90px; height: 90px; margin: 0 auto 10px; border-radius: 50%; 
             background-size: cover; background-position: center; 
             border: 3px solid var(--neon-blue); box-shadow: 0 0 15px rgba(0, 243, 255, 0.3); 
         }
-        .sector-owner { 
-            font-size: 1.1rem; color: #fff; margin-bottom: 2px; font-weight: bold; 
-            text-transform: uppercase; font-family: 'Orbitron'; letter-spacing: 1px; 
-            word-break: break-all; width: 100%;
-        }
-        .sector-name { 
-            font-size: 1.1rem; color: #ffffff; font-weight: bold; 
-            font-family: 'Orbitron'; text-transform: uppercase;
-        }
+        .sector-owner { font-size: 1.1rem; color: #fff; margin-bottom: 2px; font-weight: bold; text-transform: uppercase; font-family: 'Orbitron'; letter-spacing: 1px; word-break: break-all; width: 100%; }
+        .sector-name { font-size: 1.1rem; color: #ffffff; font-weight: bold; font-family: 'Orbitron'; text-transform: uppercase; }
         
         .vote-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8);
             display: flex; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s;
-            border-radius: 10px;
+            border-radius: 10px; backdrop-filter: blur(5px);
         }
         .sector-card:not(.disabled):hover .vote-overlay { opacity: 1; }
 
-        .btn-vote { background: transparent; color: var(--neon-blue); border: 2px solid var(--neon-blue); padding: 10px 20px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; }
+        .btn-vote { background: transparent; color: var(--neon-blue); border: 2px solid var(--neon-blue); padding: 10px 20px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; border-radius: 8px;}
         .btn-vote:hover { background: var(--neon-blue); color: #000; }
         
         .vote-count { position: absolute; top: 10px; right: 10px; background: #fff; color: #000; border-radius: 50%; width: 25px; height: 25px; line-height: 25px; font-weight: bold; }
 
         .btn-scan {
-            width: 100%; margin-top: 15px; padding: 10px; background: rgba(10, 255, 0, 0.1); border: 1px solid var(--neon-green); color: var(--neon-green);
-            font-family: 'Orbitron'; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.3s; box-shadow: 0 0 5px rgba(10, 255, 0, 0.2);
+            width: 100%; margin-top: 15px; padding: 10px; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--neon-green); color: var(--neon-green);
+            font-family: 'Orbitron'; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.3s; border-radius: 8px;
         }
-        .btn-scan:hover { background: var(--neon-green); color: #000; box-shadow: 0 0 20px var(--neon-green); }
+        .btn-scan:hover { background: var(--neon-green); color: #000; box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
 
-        .offline-tag { font-family: 'Orbitron'; color: #ff0055; font-weight: bold; border: 1px solid #ff0055; padding: 2px 5px; font-size: 0.7rem; position: absolute; top: 10px; left: 10px; transform: rotate(-15deg); }
+        .offline-tag { font-family: 'Orbitron'; color: var(--neon-red); font-weight: bold; border: 1px solid var(--neon-red); padding: 2px 5px; font-size: 0.7rem; position: absolute; top: 10px; left: 10px; transform: rotate(-15deg); border-radius: 4px;}
         
         .results-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; gap: 30px; }
         .arrival-visual {
-            width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, var(--neon-blue), #004e52);
+            width: 180px; height: 180px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, var(--neon-blue), transparent);
             box-shadow: 0 0 60px rgba(0, 243, 255, 0.4); flex-shrink: 0;
         }
 
         #custom-modal, #rules-modal { display: none; position: fixed; z-index: 5000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); justify-content: center; align-items: center; }
         .modal-box { 
-            background: rgba(20, 20, 35, 0.95); width: 500px; padding: 30px; border-radius: 15px; 
+            background: rgba(15, 15, 25, 0.95); width: 500px; padding: 30px; border-radius: 15px; 
             border: 2px solid var(--neon-blue); text-align: center; box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
             animation: slideDown 0.3s; max-height: 85vh; overflow-y: auto;
         }
@@ -125,24 +145,26 @@
         .modal-box li { margin-bottom: 8px; }
 
         .modal-btns { display: flex; gap: 15px; justify-content: center; }
-        .m-btn { 
-            flex: 1; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; text-transform: uppercase; transition: 0.2s;
-        }
+        .m-btn { flex: 1; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; text-transform: uppercase; transition: 0.2s; }
         .m-confirm { background: var(--neon-blue); color: #000; }
         .m-confirm:hover { box-shadow: 0 0 15px var(--neon-blue); }
         .m-cancel { background: transparent; border: 2px solid #555; color: #aaa; }
         .m-cancel:hover { border-color: #fff; color: #fff; }
 
-        .host-actions { position: absolute; bottom: 0; width: 100%; padding: 20px; background: rgba(0,0,0,0.8); display: flex; justify-content: center; gap: 15px; }
-        .cyber-btn { background: var(--bg-dark); color: #fff; border: 1px solid #fff; padding: 12px 25px; font-family: 'Rajdhani'; font-size: 1.1rem; cursor: pointer; transition: 0.2s; }
-        .cyber-btn:hover { background: #fff; color: #000; }
+        /* Панель хоста */
+        .host-actions { position: absolute; bottom: 0; width: 100%; padding: 20px; background: rgba(0,0,0,0.6); display: flex; justify-content: center; gap: 15px; backdrop-filter: blur(10px); border-top: 1px solid var(--glass-border); }
+        
+        .cyber-btn { background: rgba(0,0,0,0.5); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 12px 25px; font-family: 'Rajdhani'; font-size: 1.1rem; cursor: pointer; transition: 0.2s; border-radius: 8px;}
+        .cyber-btn:hover { background: rgba(255,255,255,0.1); border-color: #fff;}
         .cyber-btn.primary { border-color: var(--neon-blue); color: var(--neon-blue); }
         .cyber-btn.primary:hover { background: var(--neon-blue); color: #000; }
 
+        /* Чат */
         #chat-log { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; font-size: 0.9rem; }
-        .msg { padding: 5px; border-left: 2px solid #555; background: rgba(255,255,255,0.05); }
+        .msg { padding: 8px; border-radius: 8px; border-left: 2px solid #555; background: rgba(0,0,0,0.3); }
         .msg strong { color: var(--neon-blue); }
-        #chat-message-input { width: 100%; background: #111; border: none; border-top: 1px solid #333; color: #fff; padding: 15px; outline: none; }
+        #chat-message-input { width: 100%; background: rgba(0,0,0,0.5); border: none; border-top: 1px solid var(--glass-border); color: #fff; padding: 15px; outline: none; border-radius: 0 0 15px 15px;}
+        #chat-message-input:focus { background: rgba(0,0,0,0.7); }
 
         #status-bar { position: fixed; top: 0; width: 100%; text-align: center; font-family: 'Orbitron'; z-index: 9999; display: none; padding: 5px; }
         .status-connecting { background: #f39c12; color: #000; }
@@ -212,7 +234,7 @@
                             <h1 style="font-size:3rem; color: {% if player.role == 'human' %}var(--neon-green){% elif player.role == 'alien' %}var(--neon-red){% else %}var(--neon-blue){% endif %}">
                                 {{ player.get_role_display|upper }}
                             </h1>
-                            <p style="font-size: 1.2rem; max-width: 600px; margin-top: 15px;">
+                            <p style="font-size: 1.2rem; max-width: 600px; margin-top: 15px; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
                                 {% if player.role == 'human' %}
                                     <strong>ВАША ЦЕЛЬ:</strong> Убедить команду выбрать безопасные координаты {{ game.human_coords_to_win }} раз(а). Не дайте выбрать координату пришельца!
                                 {% elif player.role == 'alien' %}
@@ -294,16 +316,16 @@
                 
                 {% elif game.current_stage == 'game_over' %}
                     <div style="display:flex; height:100%; align-items:center; justify-content:center; text-align:center;">
-                        <div>
-                            <h1 style="font-size:3rem;">{% if game.game_over_status == 'aliens_win' %}ФЛОТ УНИЧТОЖЕН{% else %}ПОБЕДА{% endif %}</h1>
+                        <div style="background: rgba(0,0,0,0.6); padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
+                            <h1 style="font-size:3rem; margin-top: 0;">{% if game.game_over_status == 'aliens_win' %}<span style="color: var(--neon-red);">ФЛОТ УНИЧТОЖЕН</span>{% else %}<span style="color: var(--neon-green);">ПОБЕДА</span>{% endif %}</h1>
                             {% if is_host %}
-                            <div style="margin-top:20px;">
+                            <div style="margin-top:20px; display: flex; gap: 15px; justify-content: center;">
                                 <a href="{% url 'create_rematch' game.room_code %}" class="cyber-btn primary" style="text-decoration:none; display:inline-block;">НОВАЯ МИССИЯ</a>
-                                <button class="cyber-btn action-btn" id="disband-room-btn" style="border-color:var(--neon-red)">Выход</button>
+                                <button class="cyber-btn action-btn" onclick="disbandRoom()" style="border-color:var(--neon-red)">ВЫХОД</button>
                             </div>
                             {% else %}
-                            <p style="margin-top:20px;">Ожидание решения командования...</p>
-                            <a href="{% url 'index' %}" class="cyber-btn" style="margin-top:10px; display:inline-block; text-decoration:none;">Выход</a>
+                            <p style="margin-top:20px; font-size: 1.2rem;">Ожидание решения командования...</p>
+                            <a href="{% url 'index' %}" class="cyber-btn" style="margin-top:15px; display:inline-block; text-decoration:none; border-color:var(--neon-red);">ВЫХОД</a>
                             {% endif %}
                         </div>
                     </div>
@@ -312,7 +334,7 @@
         </div>
 
         <div class="comm-link">
-            <div style="padding:15px; text-align:center; border-bottom:1px solid #333; color:var(--neon-purple)">СВЯЗЬ</div>
+            <div style="padding:15px; text-align:center; border-bottom:1px solid rgba(255,255,255,0.05); color:var(--neon-purple); font-weight: bold; letter-spacing: 2px;">СВЯЗЬ</div>
             <div id="chat-log"></div>
             <input id="chat-message-input" type="text" placeholder="Сообщение..." autocomplete="off">
         </div>
@@ -320,7 +342,6 @@
 
     <script>
         const roomCode = '{{ game.room_code }}';
-        const leaveUrl = "{% url 'leave_game' game.room_code %}";
         const isHost = {{ is_host|yesno:"true,false" }};
         const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
         let gameSocket = null;
@@ -424,33 +445,9 @@
             }
         }
 
-        function leaveGame() {
-            if (confirm('Выйти из игры? Ваш персонаж останется в игре, но вы потеряете управление.')) {
-                window.location.href = leaveUrl;
-            }
-        }
-
-        function disbandRoom() {
-            if (confirm('Вы уверены? Это выкинет всех игроков.')) {
-                safeSend({'type': 'disband_room'});
-            }
-        }
-
         if (isHost) {
             const next = document.querySelector('#next-stage-btn');
             if(next) next.onclick = () => { safeSend({'type': 'next_stage'}); next.disabled=true; };
-            
-            const rematch = document.querySelector('#rematch-btn');
-            if(rematch) rematch.onclick = () => { 
-                // СТАВИМ ФЛАГ ДЛЯ НОВОГО ЛОББИ
-                localStorage.setItem('room_code_changed', 'true');
-                safeSend({'type': 'create_rematch'}); 
-                rematch.disabled=true; 
-                rematch.textContent = "СОЗДАНИЕ...";
-            };
-
-            const disb = document.querySelector('#disband-room-btn');
-            if(disb) disb.onclick = () => { disbandRoom(); };
         }
 
         document.querySelectorAll('.vote-btn').forEach(btn => {
