@@ -148,25 +148,16 @@ class GameConsumer(WebsocketConsumer):
                         coordinate_id = text_data_json.get('coordinate_id')
                         coord = GameCoordinate.objects.select_for_update().get(id=coordinate_id, game=game)
                         
+                        # Нельзя голосовать в себя
                         if coord.player == player: return 
+                        # Нельзя голосовать в уже посещенную координату
                         if coord.was_visited: return
-
-                        last_vote_target_id = self.scope['session'].get('last_vote_target_id')
-                        if last_vote_target_id and str(last_vote_target_id) == str(coord.player.id):
-                            self.safe_send({
-                                'type': 'error_notification',
-                                'message': 'Нельзя выбирать одну цель два раунда подряд!'
-                            })
-                            return 
 
                         coord.votes += 1
                         coord.save()
                         player.has_voted = True
                         player.save()
                         
-                        self.scope['session']['last_vote_target_id'] = str(coord.player.id)
-                        self.scope['session'].save()
-
                         async_to_sync(self.channel_layer.group_send)(
                             self.room_group_name, {'type': 'update_game_stage'}
                         )
