@@ -127,7 +127,12 @@
         .btn-vote { background: transparent; color: var(--neon-blue); border: 2px solid var(--neon-blue); padding: 10px 20px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; border-radius: 8px;}
         .btn-vote:hover { background: var(--neon-blue); color: #000; }
         
-        .vote-count { position: absolute; top: 10px; right: 10px; background: #fff; color: #000; border-radius: 50%; width: 25px; height: 25px; line-height: 25px; font-weight: bold; }
+        /* ИСПРАВЛЕНО: Идеальный кружок по центру для счетчика голосов */
+        .vote-count { 
+            position: absolute; top: 10px; right: 10px; background: #fff; color: #000; border-radius: 50%; 
+            width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; 
+            font-weight: bold; font-size: 0.9rem; z-index: 5;
+        }
 
         .btn-scan {
             width: 100%; margin-top: 15px; padding: 10px; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--neon-green); color: var(--neon-green);
@@ -173,7 +178,7 @@
         .m-cancel { background: transparent; border: 2px solid #555; color: #aaa; }
         .m-cancel:hover { border-color: #fff; color: #fff; }
 
-        .host-actions { position: absolute; bottom: 0; width: 100%; padding: 20px; background: rgba(0,0,0,0.6); display: flex; justify-content: center; gap: 15px; backdrop-filter: blur(10px); border-top: 1px solid var(--glass-border); }
+        .host-actions { position: absolute; bottom: 0; width: 100%; padding: 20px; background: rgba(0,0,0,0.6); display: flex; justify-content: center; gap: 15px; backdrop-filter: blur(10px); border-top: 1px solid var(--glass-border); z-index: 100; }
         
         .cyber-btn { background: rgba(0,0,0,0.5); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 12px 25px; font-family: 'Rajdhani'; font-size: 1.1rem; cursor: pointer; transition: 0.2s; border-radius: 8px;}
         .cyber-btn:hover { background: rgba(255,255,255,0.1); border-color: #fff;}
@@ -226,43 +231,99 @@
             border-radius: 15px;
         }
 
+        /* --- ПОЛНОСТЬЮ ПЕРЕРАБОТАННАЯ АДАПТИВНОСТЬ ДЛЯ ТЕЛЕФОНОВ --- */
         @media (max-width: 768px) {
-            body { padding: 90px 10px 10px 10px; }
-            .header-panel { padding: 15px; flex-direction: column; gap: 10px; text-align: center; }
-            .comm-link {
-                top: 90px;
-                right: 10px;
-                bottom: 10px;
-                width: calc(100% - 20px);
-            }
-            .galaxy-map { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); padding: 15px; gap: 15px; }
-            .sector-card { padding: 15px; }
-            .player-avatar { width: 70px; height: 70px; }
-            .modal-box { padding: 25px; }
-
-            .chat-toggle-edge {
-                top: auto;
-                bottom: 100px; 
-                right: 20px;
-                transform: none;
-                width: 60px;
-                height: 60px;
-                border-radius: 50%;
-                border: 2px solid var(--neon-purple);
-                box-shadow: 0 0 20px rgba(217, 70, 239, 0.5);
-            }
-            .chat-toggle-edge:hover { width: 60px; } 
-
-            #countdown-block h3 { font-size: 1rem !important; margin: 10px 0 5px 0 !important; }
-            #countdown { font-size: 3rem !important; margin: 10px 0 !important; }
-            #countdown-block div:last-child { font-size: 0.8rem !important; }
-
-            #result-block h3 { font-size: 1rem !important; letter-spacing: 1px !important; } 
-            #result-block > div:nth-of-type(2) { font-size: 1.2rem !important; letter-spacing: 1px !important; } 
-            #result-block h1 { font-size: 1.5rem !important; letter-spacing: 2px !important; margin-top: 8px !important; } 
-            #result-block h2 { font-size: 1.3rem !important; margin-bottom: 15px !important; } 
+            body { padding: 80px 10px 10px 10px; }
             
-            #result-block .player-avatar { width: 80px !important; height: 80px !important; margin: 15px 0 5px 0 !important; }
+            /* Уменьшаем шрифты общие */
+            .header-panel { padding: 12px; flex-direction: column; gap: 8px; text-align: center; }
+            .header-panel h2 { font-size: 1.1rem !important; margin: 0; }
+            .phase-indicator { font-size: 0.75rem; padding: 4px 12px; }
+            
+            .comm-link { top: 80px; right: 10px; bottom: 10px; width: calc(100% - 20px); }
+            .modal-box { padding: 20px; }
+            .modal-box h3 { font-size: 1.1rem; }
+            .modal-box p { font-size: 0.9rem; line-height: 1.4; }
+            .modal-box li { font-size: 0.9rem; }
+
+            .chat-toggle-edge { bottom: 85px; right: 15px; width: 50px; height: 50px; }
+            .chat-toggle-edge:hover { width: 50px; } 
+
+            .cyber-btn { padding: 10px 15px; font-size: 0.85rem; }
+
+            /* ИСПРАВЛЕНИЕ: Превращаем сетку в вертикальный список на 4 игрока */
+            .galaxy-map { 
+                display: flex; 
+                flex-direction: column; 
+                padding: 5px 10px; 
+                gap: 10px; 
+                margin-top: 15px; /* Отступ от хедера */
+                margin-bottom: 75px; /* Отступ от нижних кнопок ведущего */
+                height: auto;
+                max-height: 350px; /* 4 карты по 75px + 3 отступа по 10px = 330px. Остаток покажет 5-ю */
+                overflow-y: auto;
+                
+                scrollbar-width: thin;
+                scrollbar-color: var(--neon-purple) rgba(255, 255, 255, 0.05);
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .galaxy-map::-webkit-scrollbar { width: 4px; }
+            .galaxy-map::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+            .galaxy-map::-webkit-scrollbar-thumb { background: var(--neon-purple); border-radius: 10px; }
+
+            /* ИСПРАВЛЕНИЕ: Переделываем вертикальную карточку в горизонтальную плашку */
+            .sector-card { 
+                display: grid; 
+                grid-template-columns: 50px 1fr minmax(auto, 80px); 
+                grid-template-rows: auto auto; 
+                grid-template-areas: 
+                    "avatar owner action" 
+                    "avatar name action"; 
+                gap: 2px 10px; 
+                padding: 10px; 
+                text-align: left; 
+                align-items: center; 
+                height: 75px; /* Жесткая высота для расчета списка */
+                min-height: auto;
+                border-radius: 12px;
+                flex-shrink: 0; /* Чтобы карты не сплющивались */
+                box-sizing: border-box;
+            }
+            .sector-card:not(.disabled):hover { transform: scale(0.98); background: rgba(0, 0, 0, 0.6); border-color: var(--neon-blue); }
+            
+            .sector-card .player-avatar { grid-area: avatar; width: 50px; height: 50px; margin: 0; }
+            .sector-card .sector-owner { grid-area: owner; font-size: 0.75rem; margin: 0; align-self: end; }
+            .sector-card .sector-name { grid-area: name; font-size: 0.9rem; margin: 0; align-self: start; }
+            
+            .sector-card .offline-tag { grid-area: action; position: relative; top: auto; left: auto; transform: none; padding: 3px 6px; font-size: 0.65rem; justify-self: end; align-self: center; }
+            .sector-card .btn-scan { grid-area: action; width: auto; margin: 0; padding: 6px 10px; font-size: 0.7rem; justify-self: end; align-self: center; }
+            .sector-card > div[id^="scan-res-"] { grid-area: action; justify-self: end; align-self: center; font-size: 0.7rem; text-align: right; }
+            
+            .sector-card .vote-overlay { grid-area: action; position: relative; background: transparent; opacity: 1; backdrop-filter: none; width: auto; height: auto; justify-content: flex-end; align-items: center; }
+            .sector-card .btn-vote { padding: 6px 12px; font-size: 0.75rem; margin: 0; }
+            
+            /* Выравниваем кружок по вертикали в мобильной плашке */
+            .sector-card .vote-count { 
+                grid-area: action; position: relative; top: auto; right: auto; 
+                justify-self: end; align-self: center; margin: 0; 
+            }
+
+            .host-actions { padding: 12px; background: rgba(0,0,0,0.95); border-top: 1px solid var(--neon-purple); z-index: 100; }
+
+            #countdown-block h3 { font-size: 0.9rem !important; margin: 10px 0 5px 0 !important; }
+            #countdown { font-size: 2.5rem !important; margin: 10px 0 !important; }
+            #countdown-block div:last-child { font-size: 0.75rem !important; }
+
+            #result-block h3 { font-size: 0.9rem !important; letter-spacing: 1px !important; } 
+            #result-block > div:nth-of-type(2) { font-size: 1rem !important; letter-spacing: 1px !important; } 
+            #result-block h1 { font-size: 1.3rem !important; letter-spacing: 2px !important; margin-top: 5px !important; } 
+            #result-block h2 { font-size: 1.1rem !important; margin-bottom: 10px !important; } 
+            #result-block .player-avatar { width: 70px !important; height: 70px !important; margin: 10px 0 5px 0 !important; }
+
+            /* Уменьшаем текст роли на этапе БРИФИНГА */
+            .game-interface h1 { font-size: 2.2rem !important; }
+            .game-interface p { font-size: 0.9rem !important; padding: 15px !important; }
         }
     </style>
 </head>
@@ -519,6 +580,34 @@
         const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
         let gameSocket = null;
         const statusBar = document.getElementById('status-bar');
+        
+        const chatStorageKey = 'crewfall_chat_' + roomCode;
+
+        function loadChat() {
+            const savedChat = sessionStorage.getItem(chatStorageKey);
+            if (savedChat) {
+                const messages = JSON.parse(savedChat);
+                const log = document.getElementById('chat-log');
+                messages.forEach(data => {
+                    const el = document.createElement('div');
+                    el.className = 'msg';
+                    el.innerHTML = data.username === 'Система' ? `<i style="color:#aaa">${data.message}</i>` : `<strong>${data.username}:</strong> ${data.message}`;
+                    log.appendChild(el);
+                });
+                log.scrollTop = log.scrollHeight;
+            }
+        }
+
+        function saveChatMessage(data) {
+            let savedChat = sessionStorage.getItem(chatStorageKey);
+            let messages = savedChat ? JSON.parse(savedChat) : [];
+            messages.push(data);
+            
+            if (messages.length > 50) messages.shift(); 
+            sessionStorage.setItem(chatStorageKey, JSON.stringify(messages));
+        }
+
+        loadChat();
 
         function showStatus(msg, type) {
             statusBar.textContent = msg;
@@ -597,8 +686,11 @@
                     const log = document.getElementById('chat-log');
                     log.appendChild(el);
                     log.scrollTop = log.scrollHeight;
+
+                    saveChatMessage({username: data.username, message: data.message});
                 }
                 else if (data.type === 'game_aborted' || data.type === 'room_disbanded') {
+                    sessionStorage.removeItem(chatStorageKey);
                     showCustomAlert(data.message || 'Игра завершена ведущим.', "{% url 'index' %}");
                 }
             };
@@ -644,20 +736,28 @@
         function leaveGame() {
             if (typeof showHeaderConfirm === "function") {
                 showHeaderConfirm('ПОКИНУТЬ ИГРУ? ПЕРСОНАЖ ОСТАНЕТСЯ НА ПОЛЕ.', () => {
+                    sessionStorage.removeItem(chatStorageKey);
                     window.location.href = leaveUrl;
                 });
             } else {
-                if (confirm('Покинуть игру? Персонаж останется на поле.')) window.location.href = leaveUrl;
+                if (confirm('Покинуть игру? Персонаж останется на поле.')) {
+                    sessionStorage.removeItem(chatStorageKey);
+                    window.location.href = leaveUrl;
+                }
             }
         }
 
         function disbandRoom() {
             if (typeof showHeaderConfirm === "function") {
                 showHeaderConfirm('УНИЧТОЖИТЬ ЛОББИ? ЭТО ВЫКИНЕТ ВСЕХ ИГРОКОВ.', () => {
+                    sessionStorage.removeItem(chatStorageKey);
                     safeSend({'type': 'disband_room'});
                 });
             } else {
-                 if (confirm('Уничтожить лобби? Это выкинет всех игроков.')) safeSend({'type': 'disband_room'});
+                 if (confirm('Уничтожить лобби? Это выкинет всех игроков.')) {
+                     sessionStorage.removeItem(chatStorageKey);
+                     safeSend({'type': 'disband_room'});
+                 }
             }
         }
 
@@ -673,7 +773,6 @@
             };
         });
 
-        // ДОБАВЛЕНО: Защита ввода чата от XSS (вырезаем < и >)
         const chatInput = document.getElementById('chat-message-input');
         if (chatInput) {
             chatInput.addEventListener('input', (e) => {
