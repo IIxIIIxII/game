@@ -20,7 +20,7 @@
             background: url('/static/bg.jpg') no-repeat center center fixed;
             background-size: cover;
             color: var(--text-main);
-            overflow-x: hidden; /* Убрал overflow: hidden, чтобы на мобилках можно было скроллить, если не влезает */
+            overflow-x: hidden;
             display: flex; flex-direction: column;
         }
 
@@ -143,7 +143,6 @@
         }
         .m-cancel:hover { border-color: #fff; color: #fff; }
 
-        /* АДАПТИВНОСТЬ ДЛЯ ПЛАНШЕТОВ И МОБИЛЬНЫХ */
         @media (max-width: 1000px) {
             header { padding: 20px 30px; }
             .control-deck { grid-template-columns: 1fr; padding: 40px; }
@@ -172,7 +171,7 @@
         <div class="nav-links"><a href="#" class="header-link">Войти</a></div>
     </header>
 
-    <button class="rules-btn-fixed" onclick="openRules()">❕</button>
+    <button class="rules-btn-fixed" onclick="openRules()">Правила</button>
 
     <div id="rules-modal">
         <div class="modal-box">
@@ -219,9 +218,26 @@
                         {% csrf_token %}
                         <input type="hidden" name="action" value="join">
                         <input type="hidden" name="avatar_id" class="avatar-sync" value="0">
-                        <div class="input-group"><input type="text" name="nickname" id="nick-field" placeholder="ВАШ ПОЗЫВНОЙ" autocomplete="off"></div>
+                        
                         <div class="input-group">
-                            <input type="text" name="room_code" id="code-field" class="masked-code" placeholder="КОД КОМНАТЫ" autocomplete="off">
+                            <input type="text" name="nickname" id="nick-field" 
+                                   placeholder="ВАШ ПОЗЫВНОЙ" 
+                                   autocomplete="off" 
+                                   maxlength="12" 
+                                   pattern="[A-Za-zА-Яа-я0-9_ -]+" 
+                                   title="Буквы, цифры, пробелы и тире (до 12 символов)" 
+                                   required>
+                        </div>
+                        
+                        <div class="input-group">
+                            <input type="text" name="room_code" id="code-field" class="masked-code" 
+                                   placeholder="КОД КОМНАТЫ" 
+                                   autocomplete="off" 
+                                   maxlength="5" 
+                                   pattern="[A-Za-z0-9]{5}" 
+                                   title="Ровно 5 латинских букв или цифр" 
+                                   style="text-transform: uppercase;"
+                                   required>
                             <button type="button" class="toggle-password" id="eye-toggle">
                                 <svg id="eye-icon" viewBox="0 0 24 24" fill="white" width="20"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                             </button>
@@ -283,7 +299,17 @@
         }
         if (savedNick !== null) nickField.value = savedNick;
 
-        nickField.addEventListener('input', (e) => localStorage.setItem('crewfall_nickname', e.target.value));
+        // --- ЖЕСТКАЯ ОЧИСТКА ВВОДА «НА ЛЕТУ» ---
+        nickField.addEventListener('input', (e) => {
+            // Удаляем всё, кроме букв, цифр, пробелов, тире и подчеркиваний
+            e.target.value = e.target.value.replace(/[^A-Za-zА-Яа-я0-9_ \-]/g, '').slice(0, 12);
+            localStorage.setItem('crewfall_nickname', e.target.value);
+        });
+
+        codeField.addEventListener('input', (e) => {
+            // Оставляем только латиницу и цифры, сразу переводим в верхний регистр
+            e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+        });
 
         document.getElementById('cycle-btn').onclick = () => {
             currentIdx = (currentIdx + 1) % avatars.length;

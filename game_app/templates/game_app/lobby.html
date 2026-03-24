@@ -132,7 +132,6 @@
             .custom-modal-box, .modal-box { padding: 25px; }
             #main-code { font-size: 1.6rem !important; }
             
-            /* ИСПРАВЛЕНИЕ: На мобилках показываем 2 игроков полностью и кусочек третьего, чтобы было понятно, что список продолжается */
             .player-list { 
                 max-height: 185px; 
             }
@@ -198,7 +197,13 @@
                 </div>
                 <form id="profile-update-form" style="display: flex; flex-direction: column; gap: 15px;">
                     <input type="hidden" id="avatar_id_input" value="{{ current_avatar_id }}">
-                    <input type="text" id="nickname_input" class="input-field" style="width: 100%; padding: 15px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255, 255, 255, 0.15); color: white; border-radius: 12px; outline: none; font-family: 'Orbitron', sans-serif; font-size: 1rem; box-sizing: border-box; text-align: center; transition: 0.3s;" value="{{ current_nickname }}" required>
+                    <input type="text" id="nickname_input" class="input-field" 
+                           style="width: 100%; padding: 15px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255, 255, 255, 0.15); color: white; border-radius: 12px; outline: none; font-family: 'Orbitron', sans-serif; font-size: 1rem; box-sizing: border-box; text-align: center; transition: 0.3s;" 
+                           value="{{ current_nickname }}" 
+                           maxlength="12" 
+                           pattern="[A-Za-zА-Яа-я0-9_ \-]+" 
+                           title="Буквы, цифры, пробелы и тире (до 12 символов)" 
+                           required>
                     <button type="submit" class="btn-main btn-start">ОБНОВИТЬ</button>
                 </form>
             {% endif %}
@@ -275,6 +280,23 @@
     }
     document.getElementById('cycle-btn').onclick = () => { cur = (cur + 1) % avatarFiles.length; update(cur); };
     update(cur);
+
+    // ДОБАВЛЕНО: ЖЕСТКАЯ ОЧИСТКА ВВОДА «НА ЛЕТУ»
+    const nicknameInput = document.getElementById('nickname_input');
+    if (nicknameInput) {
+        nicknameInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^A-Za-zА-Яа-я0-9_ \-]/g, '').slice(0, 12);
+        });
+    }
+
+    document.querySelector('#profile-update-form').onsubmit = function(e) {
+        e.preventDefault();
+        socket.send(JSON.stringify({
+            'type': 'update_profile',
+            'nickname': document.querySelector('#nickname_input').value,
+            'avatar_id': document.querySelector('#avatar_id_input').value
+        }));
+    };
     {% endif %}
 
     const socket = new WebSocket((window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws/game/' + realRoomCode + '/');
@@ -317,17 +339,6 @@
 
     const startBtn = document.querySelector('#start-game-btn');
     if (startBtn) startBtn.onclick = () => socket.send(JSON.stringify({'type': 'start_game'}));
-
-    {% if not is_host %}
-    document.querySelector('#profile-update-form').onsubmit = function(e) {
-        e.preventDefault();
-        socket.send(JSON.stringify({
-            'type': 'update_profile',
-            'nickname': document.querySelector('#nickname_input').value,
-            'avatar_id': document.querySelector('#avatar_id_input').value
-        }));
-    };
-    {% endif %}
 </script>
 </body>
 </html>

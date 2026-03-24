@@ -108,8 +108,11 @@
 <div id="support-modal-box" class="header-modal-overlay">
     <div class="header-modal-content">
         <h3 class="h-modal-title">ТЕХПОДДЕРЖКА</h3>
-        <input type="text" id="support-name" class="support-input" placeholder="ВАШЕ ИМЯ">
-        <textarea id="support-text" class="support-input" style="resize: none;" placeholder="СООБЩЕНИЕ..." rows="4"></textarea>
+        
+        <input type="email" id="support-email" class="support-input" placeholder="ВАША ПОЧТА" maxlength="50">
+        
+        <textarea id="support-text" class="support-input" style="resize: none;" placeholder="СООБЩЕНИЕ..." rows="4" maxlength="500"></textarea>
+        
         <div class="h-modal-btns">
             <button class="h-modal-btn h-btn-cancel" onclick="closeSupport()">ОТМЕНА</button>
             <button class="h-modal-btn" style="background: linear-gradient(135deg, #d946ef, #6366f1);" onclick="closeSupport()">ОТПРАВИТЬ</button>
@@ -154,7 +157,6 @@
 
     function disbandRoom() {
         showHeaderConfirm('УНИЧТОЖИТЬ ЛОББИ?', () => {
-            // ИСПРАВЛЕНИЕ: Проверяем URL. Если мы в игре, используем сокет. Иначе — форму.
             if (window.location.pathname.includes('/game/') && typeof safeSend === "function") {
                 safeSend({'type': 'disband_room'});
             } else {
@@ -164,7 +166,29 @@
         });
     }
 
-    // ПОДДЕРЖКА
-    function openSupport(e) { e.preventDefault(); document.getElementById('support-modal-box').style.display = 'flex'; hMenuDropdown.classList.remove('active'); }
+    // ПОДДЕРЖКА И ОЧИСТКА ВВОДА
+    function openSupport(e) { 
+        e.preventDefault(); 
+        document.getElementById('support-modal-box').style.display = 'flex'; 
+        hMenuDropdown.classList.remove('active'); 
+    }
     function closeSupport() { document.getElementById('support-modal-box').style.display = 'none'; }
+
+    // --- ФИЛЬТРАЦИЯ ПОЛЕЙ ТЕХПОДДЕРЖКИ ---
+    const supportEmail = document.getElementById('support-email');
+    const supportText = document.getElementById('support-text');
+
+    if (supportEmail) {
+        supportEmail.addEventListener('input', (e) => {
+            // Оставляем только допустимые для email символы: латиницу, цифры, @, точку, тире и подчеркивание
+            e.target.value = e.target.value.replace(/[^A-Za-z0-9@._\-]/g, '').slice(0, 50);
+        });
+    }
+
+    if (supportText) {
+        supportText.addEventListener('input', (e) => {
+            // Вырезаем угловые скобки < и >, чтобы заблокировать попытки вставить HTML/JS код
+            e.target.value = e.target.value.replace(/[<>]/g, '').slice(0, 500);
+        });
+    }
 </script>

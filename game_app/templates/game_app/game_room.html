@@ -253,7 +253,6 @@
             }
             .chat-toggle-edge:hover { width: 60px; } 
 
-            /* --- ЕЩЕ СИЛЬНЕЕ УМЕНЬШАЕМ ДЛЯ ТЕЛЕФОНОВ --- */
             #countdown-block h3 { font-size: 1rem !important; margin: 10px 0 5px 0 !important; }
             #countdown { font-size: 3rem !important; margin: 10px 0 !important; }
             #countdown-block div:last-child { font-size: 0.8rem !important; }
@@ -508,7 +507,8 @@
             </div>
             
             <div id="chat-log"></div>
-            <input id="chat-message-input" type="text" placeholder="Сообщение..." autocomplete="off">
+            
+            <input id="chat-message-input" type="text" placeholder="Сообщение..." autocomplete="off" maxlength="150">
         </div>
     </div>
 
@@ -673,12 +673,20 @@
             };
         });
 
-        document.getElementById('chat-message-input').onkeyup = (e) => {
-            if (e.key === 'Enter' && e.target.value.trim()) {
-                safeSend({'type': 'chat_message', 'message': e.target.value});
-                e.target.value = '';
-            }
-        };
+        // ДОБАВЛЕНО: Защита ввода чата от XSS (вырезаем < и >)
+        const chatInput = document.getElementById('chat-message-input');
+        if (chatInput) {
+            chatInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/[<>]/g, '').slice(0, 150);
+            });
+            
+            chatInput.onkeyup = (e) => {
+                if (e.key === 'Enter' && e.target.value.trim()) {
+                    safeSend({'type': 'chat_message', 'message': e.target.value.trim()});
+                    e.target.value = '';
+                }
+            };
+        }
     </script>
 </body>
 </html>
