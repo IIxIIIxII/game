@@ -18,10 +18,12 @@ ALLOWED_HOSTS = [
 
 # ВАЖНО: В Django 4+ в конце ссылок CSRF не должно быть слешей (/)
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:8000',
-    'http://127.0.0.1:8000',
-    'https://*.ngrok-free.dev',
-    'https://*.up.railway.app',
+    'http://localhost:8000/',
+    'http://127.0.0.1:8000/',
+    'https://%2A.ngrok-free.dev/',
+    'https://%2A.up.railway.app/',
+    'https://crewfall.com/',
+    'https://www.crewfall.com/',
 ]
 
 INSTALLED_APPS = [

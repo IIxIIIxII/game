@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CrewFall - Лобби</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
@@ -16,12 +17,22 @@
 
         body { 
             font-family: 'Roboto', sans-serif; 
-            background: url('/static/bg.jpg') no-repeat center center fixed;
-            background-size: cover;
+            background-color: #050510; 
             color: var(--text-main); 
             margin: 0; padding: 120px 20px 20px 20px; 
             min-height: 100vh; overflow-x: hidden;
-            position: relative;
+            position: relative; box-sizing: border-box;
+            
+            display: flex;
+            flex-direction: column;
+        }
+
+        body::before {
+            content: ""; position: fixed; top: 0; left: 0; 
+            width: 100vw; height: 100vh;
+            background: url('/static/bg.jpg') no-repeat center center;
+            background-size: cover;
+            z-index: -2;
         }
 
         body::after {
@@ -30,41 +41,63 @@
         }
 
         .lobby-container { 
-            max-width: 1100px; margin: auto; 
+            width: 100%;
+            max-width: 1100px; 
+            margin: auto; 
             background: var(--glass-bg); padding: 40px; border-radius: 30px; 
             border: 1px solid var(--glass-border); 
             backdrop-filter: blur(30px); 
             box-shadow: 0 25px 80px rgba(0,0,0,0.3); 
+            box-sizing: border-box;
         }
         
         .content-wrapper { display: flex; gap: 30px; align-items: stretch; flex-wrap: wrap; }
 
-        .player-list-section { flex: 1.5; min-width: 350px; }
-        .player-list { list-style: none; padding: 0; margin: 0; }
+        .player-list-section { flex: 1.5; min-width: 0; width: 100%; }
+        
+        .player-list { 
+            list-style: none; padding: 0; margin: 0; 
+            max-height: 480px; 
+            overflow-y: auto; 
+            padding-right: 10px;
+        }
+
+        .player-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .player-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        .player-list::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 10px;
+        }
         
         .player-item { 
             display: flex; align-items: center; justify-content: space-between;
-            background: rgba(255, 255, 255, 0.05); padding: 0 25px; border-radius: 20px; 
+            background: rgba(255, 255, 255, 0.05); padding: 0 20px; border-radius: 20px; 
             margin-bottom: 15px; border: 1px solid rgba(255, 255, 255, 0.05);
             height: 80px; box-sizing: border-box;
+            flex-shrink: 0; 
         }
 
-        .player-info-wrapper { display: flex; align-items: center; gap: 15px; }
+        .player-info-wrapper { display: flex; align-items: center; gap: 15px; overflow: hidden; }
         .player-avatar-mini { 
-            width: 50px; height: 50px; border-radius: 50%; 
+            width: 50px; height: 50px; border-radius: 50%; flex-shrink: 0;
             border: 2px solid #fff; background-size: cover; background-position: center;
         }
-        .player-name { font-family: 'Orbitron'; font-size: 1rem; font-weight: 700; color: white; }
+        .player-name { font-family: 'Orbitron'; font-size: 1rem; font-weight: 700; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         .profile-section { 
-            flex: 1; min-width: 320px; padding: 30px; border-radius: 25px;
+            flex: 1; min-width: 0; width: 100%; padding: 30px; border-radius: 25px;
             background: rgba(0, 0, 0, 0.2); border: 1px solid var(--glass-border);
-            display: flex; flex-direction: column; align-items: stretch; gap: 20px;
+            display: flex; flex-direction: column; align-items: stretch; gap: 20px; box-sizing: border-box;
         }
 
         .btn-main { 
             padding: 18px; border: none; border-radius: 15px; cursor: pointer; 
-            font-family: 'Orbitron'; font-weight: 900; width: 100%; 
+            font-family: 'Orbitron'; font-weight: 900; width: 100%; box-sizing: border-box;
             text-transform: uppercase; transition: 0.3s;
         }
         .btn-start { background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white; }
@@ -76,17 +109,34 @@
         }
         .btn-danger-outline:hover { background: var(--danger-color); color: white; }
 
-        /* --- СТИЛИ МОДАЛОК --- */
         .custom-modal-overlay, #rules-modal {
             display: none; position: fixed; z-index: 9999; left: 0; top: 0; 
             width: 100%; height: 100%; background: rgba(0,0,0,0.85); 
-            backdrop-filter: blur(5px); justify-content: center; align-items: center;
+            backdrop-filter: blur(5px); justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;
         }
         .custom-modal-box, .modal-box {
             background: #1e1e3f; padding: 40px; border-radius: 20px; 
-            border: 2px solid var(--danger-color); text-align: center; width: 450px;
+            border: 2px solid var(--danger-color); text-align: center; width: 100%; max-width: 450px; box-sizing: border-box;
         }
-        .modal-box { border-color: var(--primary-color); width: 550px; }
+        .modal-box { border-color: var(--primary-color); max-width: 550px; }
+
+        @media (max-width: 768px) {
+            body { padding: 90px 10px 20px 10px; }
+            .lobby-container { padding: 20px; border-radius: 20px; }
+            .content-wrapper { flex-direction: column; gap: 20px; }
+            .profile-section { padding: 20px; }
+            .player-item { padding: 0 15px; height: 70px; }
+            .player-avatar-mini { width: 40px; height: 40px; }
+            .player-name { font-size: 0.9rem; }
+            .btn-main { padding: 15px; font-size: 0.9rem; }
+            .custom-modal-box, .modal-box { padding: 25px; }
+            #main-code { font-size: 1.6rem !important; }
+            
+            /* ИСПРАВЛЕНИЕ: На мобилках показываем 2 игроков полностью и кусочек третьего, чтобы было понятно, что список продолжается */
+            .player-list { 
+                max-height: 185px; 
+            }
+        }
     </style>
 </head>
 <body>
@@ -111,7 +161,7 @@
 <div id="confirm-modal" class="custom-modal-overlay">
     <div class="custom-modal-box">
         <h3 style="font-family: 'Orbitron'; color: white; margin-top: 0;">ВНИМАНИЕ</h3>
-        <p id="confirm-text" style="color: #ccc; margin-bottom: 30px; font-family: 'Orbitron';"></p>
+        <p id="confirm-text" style="color: #ccc; margin-bottom: 30px; font-family: 'Orbitron'; font-size: 0.9rem;"></p>
         <div style="display: flex; gap: 15px;">
             <button type="button" onclick="closeConfirmModal()" style="flex: 1; padding: 12px; border-radius: 10px; cursor: pointer; background: #334155; color: white; border: none; font-family: 'Orbitron';">ОТМЕНА</button>
             <button type="button" id="confirm-yes-btn" style="flex: 1; padding: 12px; border-radius: 10px; cursor: pointer; background: var(--danger-color); color: white; border: none; font-family: 'Orbitron';">ДА</button>
@@ -131,7 +181,7 @@
                         <span class="player-name">{{ player.nickname }}</span>
                     </div>
                     {% if is_host %}
-                    <button type="button" class="kick-btn" onclick="kickPlayer('{{ player.id }}', '{{ player.nickname }}')" style="background:none; border: 1px solid var(--danger-color); color: var(--danger-color); padding: 5px 15px; border-radius: 8px; cursor:pointer; font-family:'Orbitron'; font-size: 0.7rem;">KICK</button>
+                    <button type="button" class="kick-btn" onclick="kickPlayer('{{ player.id }}', '{{ player.nickname }}')" style="background:none; border: 1px solid var(--danger-color); color: var(--danger-color); padding: 5px 10px; border-radius: 8px; cursor:pointer; font-family:'Orbitron'; font-size: 0.7rem;">KICK</button>
                     {% endif %}
                 </li>
                 {% endfor %}
@@ -247,7 +297,7 @@
         const ul = document.querySelector('#player-list-ul');
         ul.innerHTML = players.map(p => {
             const avatarPath = avatarFiles[p.avatar_id] || avatarFiles[0];
-            const kickBtn = isHost ? `<button type="button" class="kick-btn" onclick="kickPlayer('${p.id}', '${p.nickname}')" style="background:none; border: 1px solid var(--danger-color); color: var(--danger-color); padding: 5px 15px; border-radius: 8px; cursor:pointer; font-family:'Orbitron'; font-size: 0.7rem;">KICK</button>` : '';
+            const kickBtn = isHost ? `<button type="button" class="kick-btn" onclick="kickPlayer('${p.id}', '${p.nickname}')" style="background:none; border: 1px solid var(--danger-color); color: var(--danger-color); padding: 5px 10px; border-radius: 8px; cursor:pointer; font-family:'Orbitron'; font-size: 0.7rem;">KICK</button>` : '';
             return `<li class="player-item">
                 <div class="player-info-wrapper">
                     <div class="player-avatar-mini" style="background-image: url('${avatarPath}')"></div>
