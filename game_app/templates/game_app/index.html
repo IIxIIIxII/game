@@ -37,6 +37,29 @@
             text-security: disc !important;
         }
 
+        /* --- ГЛАВНЫЙ ЭКРАН ЗАЩИТЫ (КАПЧА) --- */
+        #site-guard-modal {
+            /* По умолчанию включен */
+            display: flex; 
+            position: fixed; z-index: 99999; left: 0; top: 0;
+            width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.92); /* Сильное затемнение */
+            backdrop-filter: blur(15px); /* Размытие фона */
+            justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;
+            transition: opacity 0.5s ease;
+        }
+        .guard-box {
+            background: rgba(15, 15, 25, 0.95); width: 100%; max-width: 420px; padding: 40px 20px; border-radius: 20px;
+            border: 2px solid var(--primary-color); text-align: center;
+            box-shadow: 0 0 50px rgba(217, 70, 239, 0.3);
+            display: flex; flex-direction: column; align-items: center; gap: 20px;
+            animation: pulse-glow 2s infinite alternate;
+        }
+        @keyframes pulse-glow {
+            from { box-shadow: 0 0 20px rgba(217, 70, 239, 0.2); }
+            to { box-shadow: 0 0 50px rgba(217, 70, 239, 0.5); }
+        }
+
         header {
             position: fixed; top: 0; width: 100%; padding: 25px 60px; box-sizing: border-box;
             display: flex; justify-content: space-between; align-items: center;
@@ -165,12 +188,31 @@
             .modal-box { padding: 25px; }
             #typing-text { font-size: 0.9rem; margin-bottom: 20px; }
             
-            /* Стили для центрирования капчи на мобильных */
             .g-recaptcha { transform: scale(0.9); transform-origin: center; }
         }
     </style>
 </head>
 <body>
+
+    <div id="site-guard-modal">
+        <div class="guard-box">
+            <div>
+                <h3 style="color: var(--primary-color); font-family: 'Orbitron'; margin: 0 0 10px 0; letter-spacing: 2px;">ДОСТУП К ТЕРМИНАЛУ</h3>
+                <p style="color: #aaa; margin: 0; font-size: 0.9rem;">Подтвердите биометрический статус</p>
+            </div>
+            
+            <div class="g-recaptcha" data-sitekey="6LcPxZssAAAAAFPGCO409YyGdfxYZnjFcWr8TfmC" data-callback="unlockSite" data-expired-callback="lockSite"></div>
+            
+            {% if messages %}
+                <div style="margin-top: 15px; color: var(--neon-red); font-weight: bold;">
+                    {% for message in messages %}
+                        {{ message }}<br>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
     <header>
         <div class="nav-links"><a href="javascript:void(0)" onclick="openRules()" class="header-link">Правила</a></div>
         <div class="logo">CrewFall</div>
@@ -219,9 +261,7 @@
                         <input type="hidden" name="nickname" value="Host"> 
                         <input type="hidden" name="avatar_id" class="avatar-sync" value="0">
                         
-                        <div class="input-group" style="display: flex; justify-content: center; margin-bottom: 15px;">
-                            <div class="g-recaptcha" data-sitekey="6LcPxZssAAAAAFPGCO409YyGdfxYZnjFcWr8TfmC"></div>
-                        </div>
+                        <input type="hidden" name="g-recaptcha-response" class="captcha-token-input">
 
                         <button type="submit" class="btn-main btn-create">Создать лобби</button>
                     </form>
@@ -232,6 +272,8 @@
                         {% csrf_token %}
                         <input type="hidden" name="action" value="join">
                         <input type="hidden" name="avatar_id" class="avatar-sync" value="0">
+                        
+                        <input type="hidden" name="g-recaptcha-response" class="captcha-token-input">
                         
                         <div class="input-group">
                             <input type="text" name="nickname" id="nick-field" 
@@ -257,10 +299,6 @@
                             </button>
                         </div>
 
-                        <div class="input-group" style="display: flex; justify-content: center;">
-                            <div class="g-recaptcha" data-sitekey="ТВОЙ_SITE_KEY_ОТ_GOOGLE"></div>
-                        </div>
-
                         <button type="submit" class="btn-main btn-join-confirm">Войти в игру</button>
                     </form>
                 </div>
@@ -274,6 +312,30 @@
     </section>
 
     <script>
+        /* --- ЛОГИКА КАПЧИ --- */
+        function unlockSite(token) {
+            // Прячем экран с капчей
+            document.getElementById('site-guard-modal').style.opacity = '0';
+            setTimeout(() => { document.getElementById('site-guard-modal').style.display = 'none'; }, 500);
+            
+            // Записываем токен капчи в скрытые поля обеих форм
+            document.querySelectorAll('.captcha-token-input').forEach(input => {
+                input.value = token;
+            });
+        }
+
+        function lockSite() {
+            // Если токен истек, снова блокируем сайт
+            document.getElementById('site-guard-modal').style.display = 'flex';
+            setTimeout(() => { document.getElementById('site-guard-modal').style.opacity = '1'; }, 10);
+            
+            // Очищаем скрытые поля
+            document.querySelectorAll('.captcha-token-input').forEach(input => {
+                input.value = '';
+            });
+        }
+
+        /* --- ОСТАЛЬНАЯ ЛОГИКА САЙТА --- */
         function openRules() { document.getElementById('rules-modal').style.display = 'flex'; }
         function closeRules() { document.getElementById('rules-modal').style.display = 'none'; }
 
@@ -318,15 +380,12 @@
         }
         if (savedNick !== null) nickField.value = savedNick;
 
-        // --- ЖЕСТКАЯ ОЧИСТКА ВВОДА «НА ЛЕТУ» ---
         nickField.addEventListener('input', (e) => {
-            // Удаляем всё, кроме букв, цифр, пробелов, тире и подчеркиваний
             e.target.value = e.target.value.replace(/[^A-Za-zА-Яа-я0-9_ \-]/g, '').slice(0, 12);
             localStorage.setItem('crewfall_nickname', e.target.value);
         });
 
         codeField.addEventListener('input', (e) => {
-            // ИСПРАВЛЕНО НА 5 СИМВОЛОВ (было 6)
             e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
         });
 
