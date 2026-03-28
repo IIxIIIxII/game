@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CrewFall - Космическая Сага</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    
     <style>
         :root {
             --primary-color: #d946ef; 
@@ -161,6 +164,9 @@
             .rules-btn-fixed { bottom: 15px; right: 15px; padding: 10px 15px; font-size: 0.8rem; }
             .modal-box { padding: 25px; }
             #typing-text { font-size: 0.9rem; margin-bottom: 20px; }
+            
+            /* Стили для центрирования капчи на мобильных */
+            .g-recaptcha { transform: scale(0.9); transform-origin: center; }
         }
     </style>
 </head>
@@ -206,14 +212,22 @@
                     <p style="font-family: 'Orbitron'; font-size: 0.75rem; color: #888;">ВНЕШНОСТЬ ЭКИПАЖА</p>
                 </div>
                 <div class="actions-section">
+                    
                     <form method="post" action="" id="create-form">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="create">
                         <input type="hidden" name="nickname" value="Host"> 
                         <input type="hidden" name="avatar_id" class="avatar-sync" value="0">
+                        
+                        <div class="input-group" style="display: flex; justify-content: center; margin-bottom: 15px;">
+                            <div class="g-recaptcha" data-sitekey="6LcPxZssAAAAAFPGCO409YyGdfxYZnjFcWr8TfmC"></div>
+                        </div>
+
                         <button type="submit" class="btn-main btn-create">Создать лобби</button>
                     </form>
+
                     <button type="button" id="toggle-join" class="btn-main btn-join-toggle">Присоединиться</button>
+                    
                     <form method="post" action="" id="join-fields">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="join">
@@ -242,6 +256,11 @@
                                 <svg id="eye-icon" viewBox="0 0 24 24" fill="white" width="20"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                             </button>
                         </div>
+
+                        <div class="input-group" style="display: flex; justify-content: center;">
+                            <div class="g-recaptcha" data-sitekey="ТВОЙ_SITE_KEY_ОТ_GOOGLE"></div>
+                        </div>
+
                         <button type="submit" class="btn-main btn-join-confirm">Войти в игру</button>
                     </form>
                 </div>
@@ -307,8 +326,8 @@
         });
 
         codeField.addEventListener('input', (e) => {
-            // Оставляем только латиницу и цифры, сразу переводим в верхний регистр
-            e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+            // ИСПРАВЛЕНО НА 5 СИМВОЛОВ (было 6)
+            e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
         });
 
         document.getElementById('cycle-btn').onclick = () => {

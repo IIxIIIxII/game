@@ -1,3 +1,5 @@
+import os
+import requests
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
@@ -6,6 +8,10 @@ import random
 import string
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+
+# Загружаем переменные из .env файла
+from dotenv import load_dotenv
+load_dotenv()
 
 def generate_session_id():
     return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
@@ -24,14 +30,31 @@ def index(request):
         request.session['room_code'] = active_game.game.room_code
         return redirect('game_lobby')
         
-    # 2. ПРОВЕРКА ДЛЯ ХОСТА (Вот этого не хватало!)
-    # Если ты создатель активной игры, возвращайся в лобби
+    # 2. ПРОВЕРКА ДЛЯ ХОСТА
     hosted_game = GameSession.objects.filter(host_session=session_id).exclude(current_stage='game_over').first()
     if hosted_game:
         request.session['room_code'] = hosted_game.room_code
         return redirect('game_lobby')
     
     if request.method == "POST":
+        # --- ПРОВЕРКА reCAPTCHA ЧЕРЕЗ .ENV ---
+        recaptcha_response = request.POST.get('g-recaptcha-response')
+        google_data = {
+            'secret': os.getenv('RECAPTCHA_SECRET_KEY'),  # <-- КЛЮЧ БЕРЕТСЯ ИЗ .ENV
+            'response': recaptcha_response
+        }
+        
+        try:
+            r = requests.post('https://www.google.com/recaptcha/api/siteverify', data=google_data)
+            result = r.json()
+            if not result.get('success'):
+                messages.error(request, 'Пожалуйста, подтвердите, что вы не робот.')
+                return redirect('index')
+        except Exception:
+            messages.error(request, 'Ошибка сервиса проверки капчи. Попробуйте еще раз.')
+            return redirect('index')
+        # --------------------------
+
         nickname = request.POST.get('nickname')
         avatar_id = request.POST.get('avatar_id')
         
@@ -210,7 +233,6 @@ def game_room(request):
     }
     return render(request, 'game_app/game_room.html', context)
 
-# ИСПРАВЛЕННАЯ ФУНКЦИЯ (добавлен room_code)
 def leave_game(request, room_code):
     session_id = request.session.get('session_id')
     
@@ -251,11 +273,8 @@ def create_rematch(request, old_room_code):
     if session_id != old_game.host_session:
         return redirect('index')
 
-    # 1. Создаем абсолютно новую игровую сессию
     new_game = GameSession.objects.create(host_session=session_id)
     
-    # 2. ИСПРАВЛЕНИЕ: Берем только тех игроков, которые НЕ вышли
-    # Исключаем тех, у кого session_id начинается с 'LEFT-'
     active_players = old_game.players.exclude(session_id__startswith='LEFT-')
     
     for player in active_players:
@@ -264,7 +283,6 @@ def create_rematch(request, old_room_code):
         player.special_used = False
         player.save()
     
-    # 3. Отправляем сигнал всем игрокам в старой комнате
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         f'game_{old_room_code}',
@@ -274,9 +292,7 @@ def create_rematch(request, old_room_code):
         }
     )
     
-    # 4. Удаляем старую игру
     old_game.delete()
     
-    # 5. Обновляем сессию хоста
     request.session['room_code'] = new_game.room_code
     return redirect('game_lobby')
