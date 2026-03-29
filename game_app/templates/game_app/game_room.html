@@ -415,13 +415,13 @@
                         {% for coord in game.coordinates.all %}
                             {% if coord.player == player %}
                             <div class="sector-card" style="border-color: var(--neon-green);">
-                                <div class="player-avatar" style="background-image: url('/static/myhehe{% if coord.player.avatar_id|stringformat:'s' != '0' %}{{ coord.player.avatar_id }}{% endif %}.png'); border-color: var(--neon-green); box-shadow: 0 0 15px rgba(10, 255, 0, 0.4);"></div>
+                                <div class="player-avatar" style="background-image: url('/static/myhehe{% if coord.player.avatar_id|stringformat:'s' != '0' %}{{ coord.player.avatar_id }}{% endif %}.jpg'); border-color: var(--neon-green); box-shadow: 0 0 15px rgba(10, 255, 0, 0.4);"></div>
                                 <div class="sector-owner" style="color: var(--neon-green);">{{ coord.player.nickname }}</div>
                                 <div class="sector-name">{{ coord.coordinate_name }}</div>
                             </div>
                             {% else %}
                             <div class="sector-card {% if coord.was_visited %}disabled{% endif %}">
-                                <div class="player-avatar" style="background-image: url('/static/myhehe{% if coord.player.avatar_id|stringformat:'s' != '0' %}{{ coord.player.avatar_id }}{% endif %}.png'); {% if coord.was_visited %}border-color: #555; box-shadow: none; filter: grayscale(100%);{% endif %}"></div>
+                                <div class="player-avatar" style="background-image: url('/static/myhehe{% if coord.player.avatar_id|stringformat:'s' != '0' %}{{ coord.player.avatar_id }}{% endif %}.jpg'); {% if coord.was_visited %}border-color: #555; box-shadow: none; filter: grayscale(100%);{% endif %}"></div>
                                 <div class="sector-owner">{{ coord.player.nickname }}</div>
                                 <div class="sector-name">{{ coord.coordinate_name }}</div>
                                 
@@ -443,7 +443,7 @@
                     <div class="galaxy-map">
                         {% for coord in game.coordinates.all %}
                         <div class="sector-card {% if coord.was_visited or player.has_voted or coord.player == player %}disabled{% endif %}" style="position: relative; {% if is_host %}pointer-events: none;{% endif %}">
-                             <div class="player-avatar" style="background-image: url('/static/myhehe{% if coord.player.avatar_id|stringformat:'s' != '0' %}{{ coord.player.avatar_id }}{% endif %}.png'); {% if coord.player == player %}border-color: var(--neon-green);{% endif %} {% if coord.was_visited %}border-color: #555; box-shadow: none; filter: grayscale(100%);{% endif %}"></div>
+                             <div class="player-avatar" style="background-image: url('/static/myhehe{% if coord.player.avatar_id|stringformat:'s' != '0' %}{{ coord.player.avatar_id }}{% endif %}.jpg'); {% if coord.player == player %}border-color: var(--neon-green);{% endif %} {% if coord.was_visited %}border-color: #555; box-shadow: none; filter: grayscale(100%);{% endif %}"></div>
                              
                              <div class="sector-owner" {% if coord.player == player %}style="color: var(--neon-green);"{% endif %}>
                                  {{ coord.player.nickname }}
@@ -482,7 +482,7 @@
                                     {% if last_visited_coord.player.role == 'alien' %}ФЛОТ УНИЧТОЖЕН{% else %}ПРОТОКОЛ ПРИБЫТИЯ{% endif %}
                                 </h3>
                                 
-                                <div class="player-avatar" style="width: 110px; height: 110px; margin: 15px 0 10px 0; background-image: url('/static/myhehe{% if last_visited_coord.player.avatar_id|stringformat:'s' != '0' %}{{ last_visited_coord.player.avatar_id }}{% endif %}.png'); border-color: {% if last_visited_coord.player.role == 'alien' %}var(--neon-red){% else %}var(--neon-purple){% endif %}; box-shadow: 0 0 40px {% if last_visited_coord.player.role == 'alien' %}rgba(239, 68, 68, 0.5){% else %}rgba(217, 70, 239, 0.5){% endif %};"></div>
+                                <div class="player-avatar" style="width: 110px; height: 110px; margin: 15px 0 10px 0; background-image: url('/static/myhehe{% if last_visited_coord.player.avatar_id|stringformat:'s' != '0' %}{{ last_visited_coord.player.avatar_id }}{% endif %}.jpg'); border-color: {% if last_visited_coord.player.role == 'alien' %}var(--neon-red){% else %}var(--neon-purple){% endif %}; box-shadow: 0 0 40px {% if last_visited_coord.player.role == 'alien' %}rgba(239, 68, 68, 0.5){% else %}rgba(217, 70, 239, 0.5){% endif %};"></div>
                                 
                                 <div style="font-size: 1.5rem; color: {% if last_visited_coord.player.role == 'alien' %}var(--neon-red){% else %}var(--neon-purple){% endif %}; font-weight: bold; font-family: 'Orbitron'; text-transform: uppercase; letter-spacing: 2px;">
                                     {{ last_visited_coord.player.nickname }}

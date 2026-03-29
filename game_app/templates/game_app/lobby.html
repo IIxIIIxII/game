@@ -176,7 +176,7 @@
                 {% for player in players %}
                 <li class="player-item">
                     <div class="player-info-wrapper">
-                        <div class="player-avatar-mini" style="background-image: url('/static/myhehe{% if player.avatar_id != '0' %}{{ player.avatar_id }}{% endif %}.png')"></div>
+                        <div class="player-avatar-mini" style="background-image: url('/static/myhehe{% if player.avatar_id != '0' %}{{ player.avatar_id }}{% endif %}.jpg')"></div>
                         <span class="player-name">{{ player.nickname }}</span>
                     </div>
                     {% if is_host %}
@@ -240,7 +240,7 @@
 
 <script>
     const realRoomCode = '{{ game.room_code }}';
-    const avatarFiles = ['/static/myhehe.png', '/static/myhehe1.png', '/static/myhehe2.png', '/static/myhehe3.png', '/static/myhehe4.png', '/static/myhehe6.png'];
+    const avatarFiles = ['/static/myhehe.jpg', '/static/myhehe1.jpg', '/static/myhehe2.jpg', '/static/myhehe3.jpg', '/static/myhehe4.jpg', '/static/myhehe6.jpg'];
     const isHost = {{ is_host|yesno:"true,false" }};
 
     function openRules() { document.getElementById('rules-modal').style.display = 'flex'; }

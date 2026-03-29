@@ -127,14 +127,12 @@
     hMenuBtn.onclick = (e) => { e.stopPropagation(); hMenuDropdown.classList.toggle('active'); };
     window.onclick = () => { hMenuDropdown.classList.remove('active'); };
 
-    // ОТКРЫТИЕ ПРАВИЛ
     function openRules() {
         const rules = document.getElementById('rules-modal');
         if (rules) rules.style.display = 'flex';
         hMenuDropdown.classList.remove('active');
     }
 
-    // ЛОГИКА МОДАЛКИ ПОДТВЕРЖДЕНИЯ
     function showHeaderConfirm(title, onConfirm) {
         document.getElementById('h-confirm-title').innerText = title;
         document.getElementById('header-confirm-modal').style.display = 'flex';
@@ -148,7 +146,6 @@
 
     function closeHeaderConfirm() { document.getElementById('header-confirm-modal').style.display = 'none'; }
 
-    // ФУНКЦИИ КНОПОК
     function leaveGame() {
         showHeaderConfirm('ПОКИНУТЬ ЭКИПАЖ?', () => {
             window.location.href = "{% url 'leave_game' game.room_code %}";
@@ -166,7 +163,6 @@
         });
     }
 
-    // ПОДДЕРЖКА И ОЧИСТКА ВВОДА
     function openSupport(e) { 
         e.preventDefault(); 
         document.getElementById('support-modal-box').style.display = 'flex'; 
@@ -188,19 +184,27 @@
             return;
         }
 
-        // Блокируем кнопку, чтобы избежать повторных нажатий
         btn.disabled = true;
         btn.innerText = "ОТПРАВКА...";
+
+        // Получаем CSRF токен напрямую из документа
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
 
         fetch('/support-api/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
+                'X-CSRFToken': csrftoken
             },
             body: JSON.stringify({ email: email, text: text })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                // Если статус не 200-299, выбрасываем ошибку для catch
+                return response.text().then(errText => { throw new Error(errText) });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 alert("Ваше сообщение успешно отправлено!");
@@ -208,12 +212,12 @@
                 textInput.value = '';
                 closeSupport();
             } else {
-                alert("Ошибка отправки: " + data.error);
+                alert("Ошибка: " + data.error);
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert("Ошибка сети. Попробуйте позже.");
+            console.error('Support Error Detail:', error);
+            alert("Ошибка при отправке. Проверьте консоль (F12) или логи сервера.");
         })
         .finally(() => {
             btn.disabled = false;
