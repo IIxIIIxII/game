@@ -8,6 +8,9 @@ import random
 import string
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+import json
+from django.core.mail import send_mail
+from django.conf import settings
 
 # Загружаем переменные из .env файла
 from dotenv import load_dotenv
@@ -296,3 +299,34 @@ def create_rematch(request, old_room_code):
     
     request.session['room_code'] = new_game.room_code
     return redirect('game_lobby')
+
+def send_support_email(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_email = data.get('email')
+            message = data.get('text')
+
+            if not user_email or not message:
+                return JsonResponse({'success': False, 'error': 'Пустые поля'})
+
+            subject = f'CrewFall: Новое обращение в техподдержку от {user_email}'
+            body = f'Отправитель: {user_email}\n\nСообщение:\n{message}'
+            
+            # Почта, на которую ты хочешь получать письма (берем из .env)
+            receiving_email = os.getenv('SUPPORT_RECEIVER_EMAIL')
+
+            send_mail(
+                subject,
+                body,
+                settings.DEFAULT_FROM_EMAIL,
+                [receiving_email],
+                fail_silently=False,
+            )
+            
+            return JsonResponse({'success': True})
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Метод не поддерживается'})

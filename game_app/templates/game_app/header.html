@@ -115,7 +115,7 @@
         
         <div class="h-modal-btns">
             <button class="h-modal-btn h-btn-cancel" onclick="closeSupport()">ОТМЕНА</button>
-            <button class="h-modal-btn" style="background: linear-gradient(135deg, #d946ef, #6366f1);" onclick="closeSupport()">ОТПРАВИТЬ</button>
+            <button id="support-send-btn" class="h-modal-btn" style="background: linear-gradient(135deg, #d946ef, #6366f1);" onclick="sendSupportMessage()">ОТПРАВИТЬ</button>
         </div>
     </div>
 </div>
@@ -174,20 +174,65 @@
     }
     function closeSupport() { document.getElementById('support-modal-box').style.display = 'none'; }
 
+    // --- ФУНКЦИЯ ОТПРАВКИ ТЕХПОДДЕРЖКИ ---
+    function sendSupportMessage() {
+        const btn = document.getElementById('support-send-btn');
+        const emailInput = document.getElementById('support-email');
+        const textInput = document.getElementById('support-text');
+        
+        const email = emailInput.value.trim();
+        const text = textInput.value.trim();
+
+        if (!email || !text) {
+            alert("Пожалуйста, заполните все поля!");
+            return;
+        }
+
+        // Блокируем кнопку, чтобы избежать повторных нажатий
+        btn.disabled = true;
+        btn.innerText = "ОТПРАВКА...";
+
+        fetch('/support-api/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ email: email, text: text })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert("Ваше сообщение успешно отправлено!");
+                emailInput.value = '';
+                textInput.value = '';
+                closeSupport();
+            } else {
+                alert("Ошибка отправки: " + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("Ошибка сети. Попробуйте позже.");
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerText = "ОТПРАВИТЬ";
+        });
+    }
+
     // --- ФИЛЬТРАЦИЯ ПОЛЕЙ ТЕХПОДДЕРЖКИ ---
     const supportEmail = document.getElementById('support-email');
     const supportText = document.getElementById('support-text');
 
     if (supportEmail) {
         supportEmail.addEventListener('input', (e) => {
-            // Оставляем только допустимые для email символы: латиницу, цифры, @, точку, тире и подчеркивание
             e.target.value = e.target.value.replace(/[^A-Za-z0-9@._\-]/g, '').slice(0, 50);
         });
     }
 
     if (supportText) {
         supportText.addEventListener('input', (e) => {
-            // Вырезаем угловые скобки < и >, чтобы заблокировать попытки вставить HTML/JS код
             e.target.value = e.target.value.replace(/[<>]/g, '').slice(0, 500);
         });
     }
