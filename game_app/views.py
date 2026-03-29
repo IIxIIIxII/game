@@ -310,23 +310,28 @@ def send_support_email(request):
             if not user_email or not message:
                 return JsonResponse({'success': False, 'error': 'Пустые поля'})
 
-            subject = f'CrewFall: Новое обращение в техподдержку от {user_email}'
-            body = f'Отправитель: {user_email}\n\nСообщение:\n{message}'
-            
-            # Почта, на которую ты хочешь получать письма (берем из .env)
-            receiving_email = os.getenv('SUPPORT_RECEIVER_EMAIL')
+            # Получаем адрес, куда придет письмо
+            receiving_email = os.getenv('SUPPORT_RECEIVER_EMAIL') or os.getenv('EMAIL_HOST_USER')
 
-            send_mail(
-                subject,
-                body,
-                settings.DEFAULT_FROM_EMAIL,
-                [receiving_email],
-                fail_silently=False,
-            )
+            # Отправка через Resend API
+            params = {
+                "from": "CrewFall Support <onboarding@resend.dev>", 
+                "to": [receiving_email],
+                "subject": f"CrewFall: Обращение от {user_email}",
+                "html": f"""
+                    <h3>Новое сообщение в техподдержку</h3>
+                    <p><strong>Отправитель:</strong> {user_email}</p>
+                    <p><strong>Текст:</strong></p>
+                    <p>{message}</p>
+                """
+            }
+
+            resend.Emails.send(params)
             
             return JsonResponse({'success': True})
             
         except Exception as e:
+            # Если что-то пойдет не так, мы увидим ошибку в алерте
             return JsonResponse({'success': False, 'error': str(e)})
 
     return JsonResponse({'success': False, 'error': 'Метод не поддерживается'})
