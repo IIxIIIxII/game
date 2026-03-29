@@ -17,6 +17,9 @@ from django.conf import settings
 from dotenv import load_dotenv
 load_dotenv()
 
+# Инициализация Resend
+resend.api_key = os.getenv('RESEND_API_KEY')
+
 def generate_session_id():
     return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
 
@@ -28,23 +31,20 @@ def index(request):
     
     session_id = request.session['session_id']
     
-    # 1. Проверяем, не в игре ли пользователь как игрок
     active_game = Player.objects.filter(session_id=session_id).exclude(game__current_stage='game_over').first()
     if active_game:
         request.session['room_code'] = active_game.game.room_code
         return redirect('game_lobby')
         
-    # 2. ПРОВЕРКА ДЛЯ ХОСТА
     hosted_game = GameSession.objects.filter(host_session=session_id).exclude(current_stage='game_over').first()
     if hosted_game:
         request.session['room_code'] = hosted_game.room_code
         return redirect('game_lobby')
     
     if request.method == "POST":
-        # --- ПРОВЕРКА reCAPTCHA ЧЕРЕЗ .ENV ---
         recaptcha_response = request.POST.get('g-recaptcha-response')
         google_data = {
-            'secret': os.getenv('RECAPTCHA_SECRET_KEY'),  # <-- КЛЮЧ БЕРЕТСЯ ИЗ .ENV
+            'secret': os.getenv('RECAPTCHA_SECRET_KEY'),
             'response': recaptcha_response
         }
         
@@ -57,7 +57,6 @@ def index(request):
         except Exception:
             messages.error(request, 'Ошибка сервиса проверки капчи. Попробуйте еще раз.')
             return redirect('index')
-        # --------------------------
 
         nickname = request.POST.get('nickname')
         avatar_id = request.POST.get('avatar_id')
@@ -252,7 +251,6 @@ def leave_game(request, room_code):
                     player.session_id = f"LEFT-{player.id}"
                     player.save()
             
-            # Сообщаем остальным, что список игроков изменился
             channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
                 f'game_{room_code}',
@@ -278,7 +276,6 @@ def create_rematch(request, old_room_code):
         return redirect('index')
 
     new_game = GameSession.objects.create(host_session=session_id)
-    
     active_players = old_game.players.exclude(session_id__startswith='LEFT-')
     
     for player in active_players:
@@ -297,7 +294,6 @@ def create_rematch(request, old_room_code):
     )
     
     old_game.delete()
-    
     request.session['room_code'] = new_game.room_code
     return redirect('game_lobby')
 
@@ -307,32 +303,39 @@ def send_support_email(request):
             data = json.loads(request.body)
             user_email = data.get('email')
             message = data.get('text')
+            
+            # НОВЫЕ ДАННЫЕ ИЗ ЗАПРОСА
+            room_code = data.get('room_code', 'ВНЕ ЛОББИ')
+            user_id = data.get('user_id', 'АНОНИМ')
 
             if not user_email or not message:
                 return JsonResponse({'success': False, 'error': 'Пустые поля'})
 
-            # Получаем адрес, куда придет письмо
             receiving_email = os.getenv('SUPPORT_RECEIVER_EMAIL') or os.getenv('EMAIL_HOST_USER')
 
-            # Отправка через Resend API
+            # Формируем красивое письмо через Resend API
             params = {
                 "from": "CrewFall Support <onboarding@resend.dev>", 
                 "to": [receiving_email],
                 "subject": f"CrewFall: Обращение от {user_email}",
                 "html": f"""
-                    <h3>Новое сообщение в техподдержку</h3>
-                    <p><strong>Отправитель:</strong> {user_email}</p>
-                    <p><strong>Текст:</strong></p>
-                    <p>{message}</p>
+                    <div style="font-family: sans-serif; padding: 20px; background: #0f172a; color: white; border-radius: 10px;">
+                        <h2 style="color: #d946ef; border-bottom: 1px solid #d946ef; padding-bottom: 10px;">CrewFall Support System</h2>
+                        <p><strong>Отправитель:</strong> {user_email}</p>
+                        <p><strong>ID Игрока (Session):</strong> {user_id}</p>
+                        <p><strong>Код комнаты:</strong> <span style="background: #1e293b; padding: 2px 8px; border-radius: 4px;">{room_code}</span></p>
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                            <strong>Текст сообщения:</strong><br>
+                            {message}
+                        </div>
+                    </div>
                 """
             }
 
             resend.Emails.send(params)
-            
             return JsonResponse({'success': True})
             
         except Exception as e:
-            # Если что-то пойдет не так, мы увидим ошибку в алерте
             return JsonResponse({'success': False, 'error': str(e)})
 
     return JsonResponse({'success': False, 'error': 'Метод не поддерживается'})

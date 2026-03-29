@@ -179,6 +179,10 @@
         const email = emailInput.value.trim();
         const text = textInput.value.trim();
 
+        // Дополнительные данные для отладки
+        const roomCode = "{{ game.room_code|default:'ВНЕ ЛОББИ' }}";
+        const userId = "{{ request.session.session_id|default:'Аноним' }}";
+
         if (!email || !text) {
             alert("Пожалуйста, заполните все поля!");
             return;
@@ -187,7 +191,6 @@
         btn.disabled = true;
         btn.innerText = "ОТПРАВКА...";
 
-        // Получаем CSRF токен напрямую из документа
         const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
 
         fetch('/support-api/', {
@@ -196,11 +199,15 @@
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrftoken
             },
-            body: JSON.stringify({ email: email, text: text })
+            body: JSON.stringify({ 
+                email: email, 
+                text: text,
+                room_code: roomCode,
+                user_id: userId
+            })
         })
         .then(response => {
             if (!response.ok) {
-                // Если статус не 200-299, выбрасываем ошибку для catch
                 return response.text().then(errText => { throw new Error(errText) });
             }
             return response.json();
