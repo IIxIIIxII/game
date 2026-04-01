@@ -42,6 +42,9 @@ def index(request):
         return redirect('game_lobby')
     
     if request.method == "POST":
+        
+        # --- КАПЧА ВРЕМЕННО ОТКЛЮЧЕНА НА БЭКЕНДЕ ---
+        '''
         recaptcha_response = request.POST.get('g-recaptcha-response')
         google_data = {
             'secret': os.getenv('RECAPTCHA_SECRET_KEY'),
@@ -57,6 +60,8 @@ def index(request):
         except Exception:
             messages.error(request, 'Ошибка сервиса проверки капчи. Попробуйте еще раз.')
             return redirect('index')
+        '''
+        # ---------------------------------------------
 
         nickname = request.POST.get('nickname')
         avatar_id = request.POST.get('avatar_id')
