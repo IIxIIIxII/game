@@ -63,28 +63,6 @@
             to { box-shadow: 0 0 50px rgba(217, 70, 239, 0.5); }
         }
 
-        header {
-            position: fixed; top: 0; width: 100%; padding: 25px 60px; box-sizing: border-box;
-            display: flex; justify-content: space-between; align-items: center;
-            z-index: 100; backdrop-filter: blur(20px);
-            background: rgba(0, 0, 0, 0.5); border-bottom: 1px solid var(--glass-border);
-        }
-        .logo {
-            font-family: 'Orbitron', sans-serif; font-size: 2.4rem; font-weight: 900;
-            background: linear-gradient(90deg, #fff, var(--primary-color));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            text-transform: uppercase; letter-spacing: 6px;
-            position: absolute; left: 50%; transform: translateX(-50%);
-            pointer-events: none;
-        }
-        .nav-links { display: flex; gap: 30px; align-items: center; }
-        .header-link {
-            font-family: 'Orbitron', sans-serif; color: rgba(255,255,255,0.6); text-decoration: none;
-            font-size: 0.85rem; letter-spacing: 2px; transition: 0.3s;
-            text-transform: uppercase; cursor: pointer;
-        }
-        .header-link:hover { color: #fff; }
-
         .hero { flex: 1; display: flex; justify-content: space-around; align-items: center; padding-top: 100px; padding-bottom: 40px; position: relative; }
 
         .side-panel { font-family: 'Orbitron', sans-serif; font-size: 0.75rem; display: flex; flex-direction: column; gap: 30px; min-width: 150px; opacity: 0.7; }
@@ -173,15 +151,12 @@
         .m-cancel:hover { border-color: #fff; color: #fff; }
 
         @media (max-width: 1000px) {
-            header { padding: 20px 30px; }
             .control-deck { grid-template-columns: 1fr; padding: 40px; }
             .avatar-section { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); padding-right: 0; padding-bottom: 30px; }
             .side-panel { display: none; }
         }
 
         @media (max-width: 768px) {
-            header { padding: 15px; flex-direction: column; gap: 10px; justify-content: center; }
-            .logo { position: static; transform: none; font-size: 1.8rem; }
             .hero { padding-top: 130px; padding-bottom: 80px; }
             .control-deck { padding: 25px; gap: 30px; border-radius: 25px; }
             .main-avatar { width: 150px; height: 150px; }
@@ -211,11 +186,7 @@
         </div>
     </div>
 
-    <header>
-        <div class="nav-links"><a href="javascript:void(0)" onclick="openRules()" class="header-link">Правила</a></div>
-        <div class="logo">CrewFall</div>
-        <div class="nav-links"><a href="#" class="header-link">Войти</a></div>
-    </header>
+    {% include 'header.html' %}
 
     <button class="rules-btn-fixed" onclick="openRules()">Правила</button>
 
