@@ -142,20 +142,21 @@
 
 {% include 'game_app/header.html' %}
 
-<div id="rules-modal">
-    <div class="modal-box">
-        <h3 style="color: var(--primary-color); font-family: 'Orbitron'; margin-bottom: 20px;">ПРАВИЛА ИГРЫ</h3>
-        <div style="text-align: left; margin-bottom: 25px; color: #ddd; line-height: 1.6;">
-            <p>В игре участвуют 3–7 игроков и один Ведущий.</p>
-            <ul style="list-style-position: inside; padding: 0;">
-                <li><strong>Люди:</strong> Выберите безопасные координаты.</li>
-                <li><strong>Пришельцы:</strong> Заманите людей к себе.</li>
-                <li><strong>Ученый:</strong> Узнайте роль игрока.</li>
-            </ul>
+    <div id="rules-modal">
+        <div class="modal-box">
+            <h3>ПРАВИЛА ИГРЫ</h3>
+            <div style="text-align: left; margin-bottom: 25px;">
+                <p>В игре участвуют 3–7 игроков и один Ведущий.</p>
+                <ul style="list-style-position: inside; padding: 0;">
+                    <li><strong>Люди:</strong> Цель — несколько раз подряд выбрать безопасные координаты и не попасть к Пришельцам.</li>
+                    <li><strong>Пришельцы:</strong> Цель — хотя бы один раз привести команду на свою координату.</li>
+                    <li><strong>Ученый:</strong> Один раз за игру может узнать роль любого игрока (появляется при 6-7 игроках).</li>
+                </ul>
+                <p>Каждый раунд игроки обсуждают свои координаты и голосуют, куда летит корабль. Игра идёт до победы Людей или Пришельцев.</p>
+            </div>
+            <button class="m-cancel" onclick="closeRules()">ПОНЯТНО</button>
         </div>
-        <button class="btn-main btn-start" style="width:auto; padding: 10px 40px;" onclick="closeRules()">ПОНЯТНО</button>
     </div>
-</div>
 
 <div id="confirm-modal" class="custom-modal-overlay">
     <div class="custom-modal-box">

@@ -26,19 +26,15 @@ class GameSession(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     last_activity = models.DateTimeField(auto_now=True)
 
-    is_chaos_mode = models.BooleanField(default=False)
-
     human_coords_to_win = models.IntegerField(default=0)
     visited_human_coords_count = models.IntegerField(default=0)
     game_over_status = models.CharField(max_length=20, choices=GAME_OVER_STATUS, default='playing')
 
-    # ИСПРАВЛЕНО: добавлена * перед args (ОБЯЗАТЕЛЬНО!)
     def save(self, *args, **kwargs):
         if not self.room_code:
             self.room_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
         super().save(*args, **kwargs)
 
-    # ИСПРАВЛЕНО: двойные подчеркивания str
     def __str__(self):
         return f"Игра {self.room_code}"
 
@@ -63,8 +59,6 @@ class Player(models.Model):
 
     class Meta:
         unique_together = ('session_id', 'game')
-
-    # ИСПРАВЛЕНО: двойные подчеркивания str
     def __str__(self):
         role_display = self.get_role_display() if self.role else "Без роли"
         return f"{self.nickname} ({role_display}) в игре {self.game.room_code}"
@@ -78,6 +72,5 @@ class GameCoordinate(models.Model):
     was_visited = models.BooleanField(default=False)
     votes = models.IntegerField(default=0)
 
-    # ИСПРАВЛЕНО: двойные подчеркивания str
     def __str__(self):
         return f"{self.coordinate_name} ({self.player.nickname}) в игре {self.game.room_code}"

@@ -72,16 +72,14 @@
     <div class="menu-container">
         <button class="menu-btn" id="headerMenuBtn">МЕНЮ ▼</button>
         <div class="dropdown-content" id="headerMenuDropdown">
+            <a onclick="openRules()">ПРАВИЛА</a>
             {% if game %}
-                <a onclick="openRules()">ПРАВИЛА</a>
                 {% if not is_host %}
                     <a onclick="leaveGame()">ВЫЙТИ ИЗ ЛОББИ</a>
                 {% endif %}
                 {% if is_host %}
                     <a style="color: #ff0055;" onclick="disbandRoom()">РАСПУСТИТЬ ЛОББИ</a>
                 {% endif %}
-            {% else %}
-                <a href="#">ВОЙТИ</a>
             {% endif %}
             <a onclick="openSupport(event)">ТЕХПОДДЕРЖКА</a>
         </div>

@@ -188,7 +188,7 @@ class GameConsumer(WebsocketConsumer):
             game.current_stage = 'roles'
             game.save()
 
-            COORD_NAMES = ["Сектор Альфа", "Туманность Ориона", "Пояс Койпера", "Галактика M-31", "Звезда Кеплера", "Астероид", "Система Траппист", "Планета Глизе", "Черная дыра", "Марс", "Венера", "Юпитер", "Сатурн", "Сектор Омега", "Пустошь"]
+            COORD_NAMES = ["Сектор Альфа", "Туманность Ориона", "Пояс Койпера", "Галактика M-31", "Звезда Кеплера", "Астероид", "Система Траппист", "Планета Глизе", "Марс", "Венера", "Юпитер", "Сатурн", "Сектор Омега", "Пустошь"]
             random.shuffle(COORD_NAMES)
             
             for i, player in enumerate(players):
@@ -204,10 +204,6 @@ class GameConsumer(WebsocketConsumer):
         
     def generate_coordinates_logic(self, game):
         with transaction.atomic():
-            HUMAN_RESOURCES = ["Запасы Топлива", "Партия Репликаторов", "Медикаменты", "Двигатель", "Кислород", "Гидропоника", "Батареи", "Инструменты", "Вода"]
-            ALIEN_MESSAGE = "Это ловушка."
-            random.shuffle(HUMAN_RESOURCES)
-            
             coords = GameCoordinate.objects.filter(game=game).select_related('player')
             
             for coord in coords:
@@ -215,8 +211,8 @@ class GameConsumer(WebsocketConsumer):
                     coord.resource_description = "[ИССЛЕДОВАНО]"
                 else:
                     is_alien = (coord.player.role == 'alien')
-                    desc = ALIEN_MESSAGE if is_alien else (HUMAN_RESOURCES.pop(0) if HUMAN_RESOURCES else "Пусто")
-                    coord.resource_description = desc
+                    # Изменено: Убрана случайная раздача ресурсов.
+                    coord.resource_description = "Это ловушка." if is_alien else "Безопасно."
                     coord.is_alien_coord = is_alien
                 
                 coord.votes = 0 
@@ -333,7 +329,6 @@ class GameConsumer(WebsocketConsumer):
     def room_disbanded(self, event):
         self.safe_send(event)
         
-    # --- ДОБАВЛЕН ОБРАБОТЧИК УДАЛЕНИЯ КОМНАТЫ ИЗ VIEWS.PY ---
     def game_aborted(self, event):
         self.safe_send({
             'type': 'game_aborted',
