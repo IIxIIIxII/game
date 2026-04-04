@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CrewFall - Космическая Сага</title>
+    
+    <link rel="icon" type="image/x-icon" href="/static/logo.ico">
+    
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     
     <style>
         :root {
@@ -192,15 +197,19 @@
 </head>
 <body>
 
-    {% if messages %}
-        <div style="position: fixed; top: 100px; width: 100%; text-align: center; z-index: 5000;">
-            <div style="display: inline-block; padding: 15px 30px; background: rgba(20, 20, 35, 0.95); border: 1px solid #ef4444; color: #ef4444; font-family: 'Orbitron', sans-serif; font-weight: bold; border-radius: 12px; box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);">
-                {% for message in messages %}
-                    {{ message }}<br>
-                {% endfor %}
-            </div>
+    <div id="site-guard-modal">
+        <div class="guard-box">
+            <div class="g-recaptcha" data-sitekey="6LcPxZssAAAAAFPGCO409YyGdfxYZnjFcWr8TfmC" data-callback="unlockSite" data-expired-callback="lockSite"></div>
+            
+            {% if messages %}
+                <div style="margin-top: 15px; color: var(--neon-red); font-weight: bold;">
+                    {% for message in messages %}
+                        {{ message }}<br>
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
-    {% endif %}
+    </div>
 
     <header>
         <div class="nav-links"><a href="javascript:void(0)" onclick="openRules()" class="header-link">Правила</a></div>
@@ -250,6 +259,8 @@
                         <input type="hidden" name="nickname" value="Host"> 
                         <input type="hidden" name="avatar_id" class="avatar-sync" value="0">
                         
+                        <input type="hidden" name="g-recaptcha-response" class="captcha-token-input">
+
                         <button type="submit" class="btn-main btn-create">Создать лобби</button>
                     </form>
 
@@ -259,6 +270,8 @@
                         {% csrf_token %}
                         <input type="hidden" name="action" value="join">
                         <input type="hidden" name="avatar_id" class="avatar-sync" value="0">
+                        
+                        <input type="hidden" name="g-recaptcha-response" class="captcha-token-input">
                         
                         <div class="input-group">
                             <input type="text" name="nickname" id="nick-field" 
@@ -297,7 +310,7 @@
     </section>
 
     <script>
-        /* --- ЛОГИКА КАПЧИ ВРЕМЕННО НЕ ВЫЗЫВАЕТСЯ --- */
+        /* --- ЛОГИКА КАПЧИ --- */
         function unlockSite(token) {
             // Прячем экран с капчей
             document.getElementById('site-guard-modal').style.opacity = '0';
