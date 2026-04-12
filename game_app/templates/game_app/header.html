@@ -64,6 +64,31 @@
         border-radius: 10px; outline: none; font-family: 'Orbitron', sans-serif; 
         box-sizing: border-box; transition: 0.3s; font-size: 0.9rem; margin-bottom: 15px;
     }
+
+    /* --- АДАПТИВНОСТЬ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ --- */
+    @media (max-width: 768px) {
+        header {
+            padding: 15px 20px;
+        }
+        .header-spacer {
+            width: 80px;
+        }
+        .logo {
+            font-size: 1.5rem;
+            letter-spacing: 4px;
+        }
+        .menu-btn {
+            padding: 8px 12px;
+            font-size: 0.7rem;
+        }
+    }
+
+    /* Экстра-маленькие экраны */
+    @media (max-width: 400px) {
+        header { padding: 10px 15px; }
+        .header-spacer { width: 60px; }
+        .logo { font-size: 1.3rem; letter-spacing: 2px; }
+    }
 </style>
 
 <header>
