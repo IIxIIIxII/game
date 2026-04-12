@@ -1,5 +1,4 @@
 <style>
-    /* --- СТИЛИ HEADER И МЕНЮ --- */
     header {
         position: fixed; top: 0; left: 0; width: 100%; padding: 20px 40px; 
         box-sizing: border-box; display: flex; justify-content: space-between; 
@@ -34,7 +33,6 @@
     }
     .dropdown-content a:hover { background: #d946ef; }
 
-    /* --- СТИЛИ МОДАЛОК (ПОДДЕРЖКА И ПОДТВЕРЖДЕНИЕ) --- */
     .header-modal-overlay { 
         display: none; position: fixed; z-index: 5000; top: 0; left: 0; 
         width: 100%; height: 100%; background: rgba(0,0,0,0.85); 
@@ -65,7 +63,6 @@
         box-sizing: border-box; transition: 0.3s; font-size: 0.9rem; margin-bottom: 15px;
     }
 
-    /* --- АДАПТИВНОСТЬ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ --- */
     @media (max-width: 768px) {
         header {
             padding: 15px 20px;
@@ -83,7 +80,6 @@
         }
     }
 
-    /* Экстра-маленькие экраны */
     @media (max-width: 400px) {
         header { padding: 10px 15px; }
         .header-spacer { width: 60px; }
@@ -195,7 +191,7 @@
     }
     function closeSupport() { document.getElementById('support-modal-box').style.display = 'none'; }
 
-    // --- ФУНКЦИЯ ОТПРАВКИ ТЕХПОДДЕРЖКИ ---
+    // --- ТЕХПОДДЕРЖКА ---
     function sendSupportMessage() {
         const btn = document.getElementById('support-send-btn');
         const emailInput = document.getElementById('support-email');
@@ -257,7 +253,6 @@
         });
     }
 
-    // --- ФИЛЬТРАЦИЯ ПОЛЕЙ ТЕХПОДДЕРЖКИ ---
     const supportEmail = document.getElementById('support-email');
     const supportText = document.getElementById('support-text');
 
