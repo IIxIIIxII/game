@@ -126,7 +126,6 @@ class GameConsumer(WebsocketConsumer):
                     target_id = text_data_json.get('player_id')
                     try:
                         target = Player.objects.get(id=target_id, game=game)
-                        # Запоминаем session_id перед удалением, чтобы кикнуть конкретного игрока
                         target_session_id = target.session_id 
                         target.delete()
                         
@@ -148,9 +147,7 @@ class GameConsumer(WebsocketConsumer):
                         coordinate_id = text_data_json.get('coordinate_id')
                         coord = GameCoordinate.objects.select_for_update().get(id=coordinate_id, game=game)
                         
-                        # Нельзя голосовать за себя
                         if coord.player == player: return 
-                        # Нельзя голосовать в уже посещенную координату
                         if coord.was_visited: return
 
                         coord.votes += 1
@@ -192,8 +189,11 @@ class GameConsumer(WebsocketConsumer):
             for i, player in enumerate(players):
                 name = COORD_NAMES.pop(0) if COORD_NAMES else f"Сектор {i}"
                 GameCoordinate.objects.create(
-                    game=game, player=player, coordinate_name=name,
-                    resource_description="Ожидание данных...", is_alien_coord=False, was_visited=False
+                    game=game, 
+                    player=player, 
+                    coordinate_name=name,
+                    is_alien_coord=False, 
+                    was_visited=False
                 )
 
         async_to_sync(self.channel_layer.group_send)(
@@ -205,11 +205,8 @@ class GameConsumer(WebsocketConsumer):
             coords = GameCoordinate.objects.filter(game=game).select_related('player')
             
             for coord in coords:
-                if coord.was_visited:
-                    coord.resource_description = "[ИССЛЕДОВАНО]"
-                else:
+                if not coord.was_visited:
                     is_alien = (coord.player.role == 'alien')
-                    coord.resource_description = "Это ловушка." if is_alien else "Безопасно."
                     coord.is_alien_coord = is_alien
                 
                 coord.votes = 0 
