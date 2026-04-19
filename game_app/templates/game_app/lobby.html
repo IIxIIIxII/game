@@ -13,30 +13,22 @@
             --glass-border: rgba(255, 255, 255, 0.15);
             --text-main: #f8fafc;
             --danger-color: #ef4444;
+            --neon-green: #10b981;
         }
 
-        /* --- ЗАЩИТА ОТ БЕЛОГО ФОНА ПРИ СКРОЛЛЕ НА ТЕЛЕФОНЕ --- */
-        html {
-            background-color: #000;
-        }
+        html { background-color: #000; }
 
         body { 
-            font-family: 'Roboto', sans-serif; 
-            color: var(--text-main); 
+            font-family: 'Roboto', sans-serif; color: var(--text-main); 
             margin: 0; padding: 120px 20px 20px 20px; 
-            min-height: 100vh; overflow-x: hidden;
-            position: relative; box-sizing: border-box;
-            
-            display: flex;
-            flex-direction: column;
+            min-height: 100vh; overflow-x: hidden; position: relative; box-sizing: border-box;
+            display: flex; flex-direction: column;
         }
 
         body::before {
-            content: ""; position: fixed; top: 0; left: 0; 
-            width: 100%; height: 100%;
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: url('/static/bg.jpg') no-repeat center center;
-            background-size: cover;
-            z-index: -2;
+            background-size: cover; z-index: -2;
         }
 
         body::after {
@@ -45,45 +37,25 @@
         }
 
         .lobby-container { 
-            width: 100%;
-            max-width: 1100px; 
-            margin: auto; 
+            width: 100%; max-width: 1100px; margin: auto; 
             background: var(--glass-bg); padding: 40px; border-radius: 30px; 
-            border: 1px solid var(--glass-border); 
-            backdrop-filter: blur(30px); 
-            box-shadow: 0 25px 80px rgba(0,0,0,0.3); 
-            box-sizing: border-box;
+            border: 1px solid var(--glass-border); backdrop-filter: blur(30px); 
+            box-shadow: 0 25px 80px rgba(0,0,0,0.3); box-sizing: border-box;
         }
         
         .content-wrapper { display: flex; gap: 30px; align-items: stretch; flex-wrap: wrap; }
-
         .player-list-section { flex: 1.5; min-width: 0; width: 100%; }
         
-        .player-list { 
-            list-style: none; padding: 0; margin: 0; 
-            max-height: 480px; 
-            overflow-y: auto; 
-            padding-right: 10px;
-        }
-
-        .player-list::-webkit-scrollbar {
-            width: 6px;
-        }
-        .player-list::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-        }
-        .player-list::-webkit-scrollbar-thumb {
-            background: var(--primary-color);
-            border-radius: 10px;
-        }
+        .player-list { list-style: none; padding: 0; margin: 0; max-height: 480px; overflow-y: auto; padding-right: 10px; }
+        .player-list::-webkit-scrollbar { width: 6px; }
+        .player-list::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+        .player-list::-webkit-scrollbar-thumb { background: var(--primary-color); border-radius: 10px; }
         
         .player-item { 
             display: flex; align-items: center; justify-content: space-between;
             background: rgba(255, 255, 255, 0.05); padding: 0 20px; border-radius: 20px; 
             margin-bottom: 15px; border: 1px solid rgba(255, 255, 255, 0.05);
-            height: 80px; box-sizing: border-box;
-            flex-shrink: 0; 
+            height: 80px; box-sizing: border-box; flex-shrink: 0; 
         }
 
         .player-info-wrapper { display: flex; align-items: center; gap: 15px; overflow: hidden; }
@@ -124,6 +96,16 @@
         }
         .modal-box { border-color: var(--primary-color); max-width: 550px; }
 
+        #rematch-toast {
+            position: fixed; bottom: -100px; right: 30px;
+            background: rgba(15, 20, 35, 0.95); border: 1px solid var(--primary-color);
+            padding: 15px 25px; border-radius: 12px; color: white;
+            font-family: 'Orbitron', sans-serif; font-size: 0.9rem; z-index: 10000;
+            box-shadow: 0 0 20px rgba(217, 70, 239, 0.4);
+            transition: bottom 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: center; gap: 12px; backdrop-filter: blur(10px);
+        }
+
         @media (max-width: 768px) {
             body { padding: 90px 10px 20px 10px; }
             .lobby-container { padding: 20px; border-radius: 20px; }
@@ -135,10 +117,8 @@
             .btn-main { padding: 15px; font-size: 0.9rem; }
             .custom-modal-box, .modal-box { padding: 25px; }
             #main-code { font-size: 1.6rem !important; }
-            
-            .player-list { 
-                max-height: 185px; 
-            }
+            .player-list { max-height: 185px; }
+            #rematch-toast { right: 15px; left: 15px; justify-content: center; padding: 12px; font-size: 0.8rem; }
         }
     </style>
 </head>
@@ -243,8 +223,26 @@
     </div>
 </div>
 
+<div id="rematch-toast">
+    <span style="font-size: 1.2rem;">🔄</span>
+    <span>КОД ЛОББИ БЫЛ ИЗМЕНЕН</span>
+</div>
+
 <script>
     const realRoomCode = '{{ game.room_code }}';
+    
+    window.addEventListener('DOMContentLoaded', () => {
+        const prevRoom = sessionStorage.getItem('rematch_previous_room');
+        const currentRoom = realRoomCode;
+        
+        if (prevRoom && prevRoom !== currentRoom) {
+            const toast = document.getElementById('rematch-toast');
+            toast.style.bottom = window.innerWidth <= 768 ? '20px' : '30px';
+            setTimeout(() => { toast.style.bottom = '-100px'; }, 5000);
+        }
+        sessionStorage.setItem('rematch_previous_room', currentRoom);
+    });
+
     const avatarFiles = ['/static/myhehe.jpg', '/static/myhehe1.jpg', '/static/myhehe2.jpg', '/static/myhehe3.jpg', '/static/myhehe4.jpg', '/static/myhehe6.jpg'];
     const isHost = {{ is_host|yesno:"true,false" }};
 
@@ -255,6 +253,7 @@
         document.getElementById('confirm-text').textContent = msg;
         document.getElementById('confirm-modal').style.display = 'flex';
         document.getElementById('confirm-yes-btn').onclick = () => {
+            sessionStorage.removeItem('rematch_previous_room'); 
             if (type === 'link') window.location.href = payload;
             else if (type === 'form') document.getElementById(payload).submit();
             else if (type === 'callback') payload();
@@ -277,33 +276,74 @@
         document.getElementById('main-code').textContent = hidden ? '******' : realRoomCode; 
     }
 
+    const socket = new WebSocket((window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws/game/' + realRoomCode + '/');
+
     {% if not is_host %}
-    let cur = parseInt('{{ current_avatar_id }}') || 0;
+    const localAvatar = localStorage.getItem('crewfall_avatar');
+    let cur = localAvatar !== null ? parseInt(localAvatar) : (parseInt('{{ current_avatar_id }}') || 0);
+    localStorage.setItem('crewfall_avatar', cur);
+
     function update(idx) { 
         document.getElementById('avatar-preview').style.backgroundImage = `url('${avatarFiles[idx]}')`; 
         document.getElementById('avatar_id_input').value = idx; 
     }
+    
     document.getElementById('cycle-btn').onclick = () => { cur = (cur + 1) % avatarFiles.length; update(cur); };
     update(cur);
 
     const nicknameInput = document.getElementById('nickname_input');
     if (nicknameInput) {
+        const localNick = localStorage.getItem('crewfall_nickname');
+        if (localNick !== null) { nicknameInput.value = localNick; } 
+        else if ('{{ current_nickname }}') { localStorage.setItem('crewfall_nickname', '{{ current_nickname }}'); }
+
         nicknameInput.addEventListener('input', (e) => {
             e.target.value = e.target.value.replace(/[^A-Za-zА-Яа-я0-9_ \-]/g, '').slice(0, 12);
         });
     }
 
+    // --- ФИКС: АВТО-СИНХРОНИЗАЦИЯ ПРИ ПОДКЛЮЧЕНИИ ---
+    socket.onopen = () => {
+        const savedNick = localStorage.getItem('crewfall_nickname');
+        const savedAvatar = localStorage.getItem('crewfall_avatar');
+        
+        if (savedNick && savedAvatar !== null) {
+            socket.send(JSON.stringify({
+                'type': 'update_profile',
+                'nickname': savedNick,
+                'avatar_id': savedAvatar
+            }));
+        }
+    };
+
     document.querySelector('#profile-update-form').onsubmit = function(e) {
         e.preventDefault();
+        
+        const newNick = document.querySelector('#nickname_input').value;
+        const newAvatar = document.querySelector('#avatar_id_input').value;
+        
+        localStorage.setItem('crewfall_nickname', newNick);
+        localStorage.setItem('crewfall_avatar', newAvatar);
+
         socket.send(JSON.stringify({
             'type': 'update_profile',
-            'nickname': document.querySelector('#nickname_input').value,
-            'avatar_id': document.querySelector('#avatar_id_input').value
+            'nickname': newNick,
+            'avatar_id': newAvatar
         }));
+
+        const btn = this.querySelector('button[type="submit"]');
+        const oldText = btn.textContent;
+        btn.textContent = 'СОХРАНЕНО!';
+        btn.style.background = 'var(--neon-green)';
+        btn.style.color = '#000';
+        
+        setTimeout(() => {
+            btn.textContent = oldText;
+            btn.style.background = '';
+            btn.style.color = '';
+        }, 1500);
     };
     {% endif %}
-
-    const socket = new WebSocket((window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws/game/' + realRoomCode + '/');
     
     socket.onmessage = (e) => {
         const d = JSON.parse(e.data);

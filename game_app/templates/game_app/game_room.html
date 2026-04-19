@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="format-detection" content="telephone=no">
     <title>Терминал | {{ game.room_code }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
@@ -127,7 +128,6 @@
         .btn-vote { background: transparent; color: var(--neon-blue); border: 2px solid var(--neon-blue); padding: 10px 20px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; border-radius: 8px;}
         .btn-vote:hover { background: var(--neon-blue); color: #000; }
         
-        /* ИСПРАВЛЕНО: Идеальный кружок по центру для счетчика голосов */
         .vote-count { 
             position: absolute; top: 10px; right: 10px; background: #fff; color: #000; border-radius: 50%; 
             width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; 
@@ -235,7 +235,6 @@
         @media (max-width: 768px) {
             body { padding: 80px 10px 10px 10px; }
             
-            /* Уменьшаем шрифты общие */
             .header-panel { padding: 12px; flex-direction: column; gap: 8px; text-align: center; }
             .header-panel h2 { font-size: 1.1rem !important; margin: 0; }
             .phase-indicator { font-size: 0.75rem; padding: 4px 12px; }
@@ -251,28 +250,28 @@
 
             .cyber-btn { padding: 10px 15px; font-size: 0.85rem; }
 
-            /* ИСПРАВЛЕНИЕ: Превращаем сетку в вертикальный список на 4 игрока */
+            /* ИСПРАВЛЕНИЕ: Тянем список до конца экрана */
             .galaxy-map { 
                 display: flex; 
                 flex-direction: column; 
-                padding: 5px 10px; 
+                padding: 10px; 
                 gap: 10px; 
-                margin-top: 15px; /* Отступ от хедера */
-                margin-bottom: 75px; /* Отступ от нижних кнопок ведущего */
-                height: auto;
-                max-height: 350px; /* 4 карты по 75px + 3 отступа по 10px = 330px. Остаток покажет 5-ю */
-                overflow-y: auto;
+                margin: 0;
+                height: 100%; /* Занимает всю высоту */
+                max-height: none; /* Убираем обрезку пустого места */
                 
+                {% if is_host %}
+                padding-bottom: 90px; /* Для ведущего делаем запас скролла снизу, чтобы кнопки не перекрывали карту */
+                {% else %}
+                padding-bottom: 20px; /* Обычным игрокам просто тянем до низу */
+                {% endif %}
+                
+                overflow-y: auto;
                 scrollbar-width: thin;
                 scrollbar-color: var(--neon-purple) rgba(255, 255, 255, 0.05);
                 -webkit-overflow-scrolling: touch;
             }
 
-            .galaxy-map::-webkit-scrollbar { width: 4px; }
-            .galaxy-map::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
-            .galaxy-map::-webkit-scrollbar-thumb { background: var(--neon-purple); border-radius: 10px; }
-
-            /* ИСПРАВЛЕНИЕ: Переделываем вертикальную карточку в горизонтальную плашку */
             .sector-card { 
                 display: grid; 
                 grid-template-columns: 50px 1fr minmax(auto, 80px); 
@@ -284,10 +283,10 @@
                 padding: 10px; 
                 text-align: left; 
                 align-items: center; 
-                height: 75px; /* Жесткая высота для расчета списка */
+                height: 75px;
                 min-height: auto;
                 border-radius: 12px;
-                flex-shrink: 0; /* Чтобы карты не сплющивались */
+                flex-shrink: 0; 
                 box-sizing: border-box;
             }
             .sector-card:not(.disabled):hover { transform: scale(0.98); background: rgba(0, 0, 0, 0.6); border-color: var(--neon-blue); }
@@ -303,7 +302,6 @@
             .sector-card .vote-overlay { grid-area: action; position: relative; background: transparent; opacity: 1; backdrop-filter: none; width: auto; height: auto; justify-content: flex-end; align-items: center; }
             .sector-card .btn-vote { padding: 6px 12px; font-size: 0.75rem; margin: 0; }
             
-            /* Выравниваем кружок по вертикали в мобильной плашке */
             .sector-card .vote-count { 
                 grid-area: action; position: relative; top: auto; right: auto; 
                 justify-self: end; align-self: center; margin: 0; 
@@ -321,7 +319,6 @@
             #result-block h2 { font-size: 1.1rem !important; margin-bottom: 10px !important; } 
             #result-block .player-avatar { width: 70px !important; height: 70px !important; margin: 10px 0 5px 0 !important; }
 
-            /* Уменьшаем текст роли на этапе БРИФИНГА */
             .game-interface h1 { font-size: 2.2rem !important; }
             .game-interface p { font-size: 0.9rem !important; padding: 15px !important; }
         }

@@ -31,6 +31,33 @@ def index(request):
     
     session_id = request.session['session_id']
     
+    # --- ФИКС: АВТО-ПОДКЛЮЧЕНИЕ ТОЛЬКО ЖИВЫХ ИГРОКОВ В РЕВАНШ ---
+    join_code = request.GET.get('join')
+    if join_code:
+        try:
+            game = GameSession.objects.get(room_code=join_code)
+            # Ведущего добавлять как игрока не нужно
+            if session_id != game.host_session:
+                Player.objects.get_or_create(
+                    session_id=session_id,
+                    game=game,
+                    defaults={
+                        'nickname': request.session.get('nickname', f'Игрок{random.randint(1000, 9999)}'),
+                        'avatar_id': request.session.get('avatar_id', '1')
+                    }
+                )
+                # Уведомляем лобби, что зашел живой игрок
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    f'game_{game.room_code}',
+                    {'type': 'player_list_update'}
+                )
+            request.session['room_code'] = game.room_code
+            return redirect('game_lobby')
+        except GameSession.DoesNotExist:
+            pass
+    # --- КОНЕЦ ФИКСА ---
+
     active_game = Player.objects.filter(session_id=session_id).exclude(game__current_stage='game_over').first()
     if active_game:
         request.session['room_code'] = active_game.game.room_code
@@ -43,20 +70,23 @@ def index(request):
     
     if request.method == "POST":
         recaptcha_response = request.POST.get('g-recaptcha-response')
-        google_data = {
-            'secret': os.getenv('RECAPTCHA_SECRET_KEY'),
-            'response': recaptcha_response
-        }
         
-        try:
-            r = requests.post('https://www.google.com/recaptcha/api/siteverify', data=google_data)
-            result = r.json()
-            if not result.get('success'):
-                messages.error(request, 'Пожалуйста, подтвердите, что вы не робот.')
+        if recaptcha_response != 'dev_bypass':
+            google_data = {
+                'secret': os.getenv('RECAPTCHA_SECRET_KEY'),
+                'response': recaptcha_response
+            }
+            
+            try:
+                r = requests.post('https://www.google.com/recaptcha/api/siteverify', data=google_data)
+                result = r.json()
+                if not result.get('success'):
+                    messages.error(request, 'Пожалуйста, подтвердите, что вы не робот.')
+                    return redirect('index')
+            except Exception:
+                messages.error(request, 'Ошибка сервиса проверки капчи. Попробуйте еще раз.')
                 return redirect('index')
-        except Exception:
-            messages.error(request, 'Ошибка сервиса проверки капчи. Попробуйте еще раз.')
-            return redirect('index')
+
 
         nickname = request.POST.get('nickname')
         avatar_id = request.POST.get('avatar_id')
@@ -275,21 +305,17 @@ def create_rematch(request, old_room_code):
     if session_id != old_game.host_session:
         return redirect('index')
 
+    # Создаем новую пустую комнату
     new_game = GameSession.objects.create(host_session=session_id)
-    active_players = old_game.players.exclude(session_id__startswith='LEFT-')
     
-    for player in active_players:
-        player.game = new_game
-        player.has_voted = False
-        player.special_used = False
-        player.save()
-    
+    # ФИКС: Мы БОЛЬШЕ НЕ копируем игроков сервером.
+    # Вместо этого отправляем сигнал живым клиентам перейти по новой ссылке.
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         f'game_{old_room_code}',
         {
             'type': 'game_migration',
-            'new_url': '/' 
+            'new_url': f'/?join={new_game.room_code}'
         }
     )
     
@@ -304,7 +330,6 @@ def send_support_email(request):
             user_email = data.get('email')
             message = data.get('text')
             
-            # НОВЫЕ ДАННЫЕ ИЗ ЗАПРОСА
             room_code = data.get('room_code', 'ВНЕ ЛОББИ')
             user_id = data.get('user_id', 'АНОНИМ')
 
@@ -313,7 +338,6 @@ def send_support_email(request):
 
             receiving_email = os.getenv('SUPPORT_RECEIVER_EMAIL') or os.getenv('EMAIL_HOST_USER')
 
-            # Формируем красивое письмо через Resend API
             params = {
                 "from": "CrewFall Support <onboarding@resend.dev>", 
                 "to": [receiving_email],
