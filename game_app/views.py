@@ -103,6 +103,12 @@ def index(request):
 
 def create_game(request):
     session_id = request.session.get('session_id')
+    nickname = request.session.get('nickname')
+    avatar_id = request.session.get('avatar_id')
+
+    if not nickname or not avatar_id:
+        messages.error(request, "Нужно выбрать ник и аватар!")
+        return redirect('index')
 
     game = GameSession.objects.create(host_session=session_id)
     request.session['room_code'] = game.room_code
@@ -114,13 +120,16 @@ def join_game(request):
     avatar_id = request.session.get('avatar_id')
     room_code = request.POST.get('room_code', '').upper()
 
-    if not nickname or not room_code:
-        messages.error(request, "Нужно выбрать ник и ввести код комнаты!")
+    if not nickname or not avatar_id or not room_code:
+        messages.error(request, "Нужно выбрать ник, аватар и ввести код комнаты!")
         return redirect('index')
 
     try:
         game = GameSession.objects.get(room_code=room_code)
-
+        
+        if session_id == game.host_session:
+            messages.error(request, "Вы уже являетесь ведущим этой игры!")
+            return redirect('index')
         
         if game.players.count() >= 7:
             messages.error(request, "Комната переполнена!")
@@ -148,7 +157,7 @@ def join_game(request):
     except GameSession.DoesNotExist:
         messages.error(request, "Комната с таким кодом не найдена!")
         return redirect('index')
-
+    
 def game_lobby(request):
     room_code = request.session.get('room_code')
     if not room_code:
