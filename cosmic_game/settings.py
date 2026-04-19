@@ -9,14 +9,13 @@ SECRET_KEY = 'django-insecure-your-secret-key-here'
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    '*', # Звездочка разрешает любые подключения (Railway, ngrok, localhost)
+    '*',
     'localhost',
     '127.0.0.1',
     '.ngrok-free.dev',
     'cirrostrative-unshared-kelley.ngrok-free.dev',
 ]
 
-# ВАЖНО: В Django 4+ в конце ссылок CSRF не должно быть слешей (/)
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',
@@ -69,7 +68,6 @@ TEMPLATES = [
 
 ASGI_APPLICATION = 'cosmic_game.asgi.application'
 
-# --- НАСТРОЙКА БАЗЫ ДАННЫХ ---
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -89,17 +87,13 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-
-# --- НАСТРОЙКА СТАТИКИ ---
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static'] 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# --- НАСТРОЙКА WEBSOCKETS (CHANNELS) ---
 redis_url = os.environ.get('REDIS_URL')
 
 if redis_url:
-    # На сервере Railway используем Redis
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels_redis.core.RedisChannelLayer',
@@ -109,7 +103,6 @@ if redis_url:
         },
     }
 else:
-    # На компе (или ngrok) оставляем локальную память
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer"

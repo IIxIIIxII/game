@@ -51,7 +51,6 @@ class Player(models.Model):
     avatar_id = models.CharField(max_length=20, default='1')
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, blank=True, null=True)
 
-    is_alive = models.BooleanField(default=True)
     has_voted = models.BooleanField(default=False)
     special_used = models.BooleanField(default=False)
 
@@ -67,7 +66,6 @@ class GameCoordinate(models.Model):
     game = models.ForeignKey(GameSession, on_delete=models.CASCADE, related_name='coordinates')
     player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='coordinate_card')
     coordinate_name = models.CharField(max_length=100)
-    resource_description = models.CharField(max_length=200)
     is_alien_coord = models.BooleanField(default=False)
     was_visited = models.BooleanField(default=False)
     votes = models.IntegerField(default=0)

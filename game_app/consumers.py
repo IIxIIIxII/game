@@ -148,7 +148,7 @@ class GameConsumer(WebsocketConsumer):
                         coordinate_id = text_data_json.get('coordinate_id')
                         coord = GameCoordinate.objects.select_for_update().get(id=coordinate_id, game=game)
                         
-                        # Нельзя голосовать в себя
+                        # Нельзя голосовать за себя
                         if coord.player == player: return 
                         # Нельзя голосовать в уже посещенную координату
                         if coord.was_visited: return
@@ -164,8 +164,6 @@ class GameConsumer(WebsocketConsumer):
 
         except Exception as e:
             print(f"Server Error: {e}")
-
-    # --- ЛОГИКА ---
     
     def start_game_logic(self, game):
         with transaction.atomic():
@@ -188,7 +186,7 @@ class GameConsumer(WebsocketConsumer):
             game.current_stage = 'roles'
             game.save()
 
-            COORD_NAMES = ["Сектор Альфа", "Туманность Ориона", "Пояс Койпера", "Галактика M-31", "Звезда Кеплера", "Астероид", "Система Траппист", "Планета Глизе", "Марс", "Венера", "Юпитер", "Сатурн", "Сектор Омега", "Пустошь"]
+            COORD_NAMES = ["Сектор Альфа", "Туманность Ориона", "Пояс Койпера", "Галактика M-31", "Звезда Кеплера", "Астероид", "Система Траппист", "Планета Глизе", "Марс", "Венера", "Юпитер", "Сатурн", "Сектор Омега"]
             random.shuffle(COORD_NAMES)
             
             for i, player in enumerate(players):
@@ -211,7 +209,6 @@ class GameConsumer(WebsocketConsumer):
                     coord.resource_description = "[ИССЛЕДОВАНО]"
                 else:
                     is_alien = (coord.player.role == 'alien')
-                    # Изменено: Убрана случайная раздача ресурсов.
                     coord.resource_description = "Это ловушка." if is_alien else "Безопасно."
                     coord.is_alien_coord = is_alien
                 
@@ -289,8 +286,6 @@ class GameConsumer(WebsocketConsumer):
                 )
         except Exception as e:
             print(f"Migration Error: {e}")
-
-    # --- Handlers ---
     
     def chat_message(self, event):
         self.safe_send({
@@ -342,6 +337,5 @@ class GameConsumer(WebsocketConsumer):
         })
         
     def player_kicked_event(self, event):
-        # Если session_id совпадает с кикнутым — отправляем команду на редирект
         if self.session_id == event.get('kicked_session_id'):
             self.safe_send({'type': 'kicked'})

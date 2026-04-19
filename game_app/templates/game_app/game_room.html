@@ -231,7 +231,7 @@
             border-radius: 15px;
         }
 
-        /* --- ПОЛНОСТЬЮ ПЕРЕРАБОТАННАЯ АДАПТИВНОСТЬ ДЛЯ ТЕЛЕФОНОВ --- */
+        /* ТЕЛЕФОНЫ */
         @media (max-width: 768px) {
             body { padding: 80px 10px 10px 10px; }
             
@@ -250,20 +250,19 @@
 
             .cyber-btn { padding: 10px 15px; font-size: 0.85rem; }
 
-            /* ИСПРАВЛЕНИЕ: Тянем список до конца экрана */
             .galaxy-map { 
                 display: flex; 
                 flex-direction: column; 
                 padding: 10px; 
                 gap: 10px; 
                 margin: 0;
-                height: 100%; /* Занимает всю высоту */
-                max-height: none; /* Убираем обрезку пустого места */
+                height: 100%;
+                max-height: none;
                 
                 {% if is_host %}
-                padding-bottom: 90px; /* Для ведущего делаем запас скролла снизу, чтобы кнопки не перекрывали карту */
+                padding-bottom: 90px;
                 {% else %}
-                padding-bottom: 20px; /* Обычным игрокам просто тянем до низу */
+                padding-bottom: 20px;
                 {% endif %}
                 
                 overflow-y: auto;

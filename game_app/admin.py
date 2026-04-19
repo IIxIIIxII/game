@@ -9,8 +9,8 @@ class GameSessionAdmin(admin.ModelAdmin):
 
 @admin.register(Player)
 class PlayerAdmin(admin.ModelAdmin):
-    list_display = ('nickname', 'game', 'session_id', 'role', 'avatar_id', 'is_alive')
-    list_filter = ('game', 'role', 'is_alive')
+    list_display = ('nickname', 'game', 'session_id', 'role', 'avatar_id')
+    list_filter = ('game', 'role')
     search_fields = ('nickname', 'session_id')
 
 @admin.register(GameCoordinate)

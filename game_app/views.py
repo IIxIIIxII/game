@@ -13,11 +13,9 @@ import json
 from django.core.mail import send_mail
 from django.conf import settings
 
-# Загружаем переменные из .env файла
 from dotenv import load_dotenv
 load_dotenv()
 
-# Инициализация Resend
 resend.api_key = os.getenv('RESEND_API_KEY')
 
 def generate_session_id():
@@ -31,12 +29,10 @@ def index(request):
     
     session_id = request.session['session_id']
     
-    # --- ФИКС: АВТО-ПОДКЛЮЧЕНИЕ ТОЛЬКО ЖИВЫХ ИГРОКОВ В РЕВАНШ ---
     join_code = request.GET.get('join')
     if join_code:
         try:
             game = GameSession.objects.get(room_code=join_code)
-            # Ведущего добавлять как игрока не нужно
             if session_id != game.host_session:
                 Player.objects.get_or_create(
                     session_id=session_id,
@@ -46,7 +42,6 @@ def index(request):
                         'avatar_id': request.session.get('avatar_id', '1')
                     }
                 )
-                # Уведомляем лобби, что зашел живой игрок
                 channel_layer = get_channel_layer()
                 async_to_sync(channel_layer.group_send)(
                     f'game_{game.room_code}',
@@ -56,7 +51,6 @@ def index(request):
             return redirect('game_lobby')
         except GameSession.DoesNotExist:
             pass
-    # --- КОНЕЦ ФИКСА ---
 
     active_game = Player.objects.filter(session_id=session_id).exclude(game__current_stage='game_over').first()
     if active_game:
@@ -109,12 +103,6 @@ def index(request):
 
 def create_game(request):
     session_id = request.session.get('session_id')
-    nickname = request.session.get('nickname')
-    avatar_id = request.session.get('avatar_id')
-
-    if not nickname or not avatar_id:
-        messages.error(request, "Нужно выбрать ник и аватар!")
-        return redirect('index')
 
     game = GameSession.objects.create(host_session=session_id)
     request.session['room_code'] = game.room_code
@@ -126,16 +114,13 @@ def join_game(request):
     avatar_id = request.session.get('avatar_id')
     room_code = request.POST.get('room_code', '').upper()
 
-    if not nickname or not avatar_id or not room_code:
-        messages.error(request, "Нужно выбрать ник, аватар и ввести код комнаты!")
+    if not nickname or not room_code:
+        messages.error(request, "Нужно выбрать ник и ввести код комнаты!")
         return redirect('index')
 
     try:
         game = GameSession.objects.get(room_code=room_code)
-        
-        if session_id == game.host_session:
-            messages.error(request, "Вы уже являетесь ведущим этой игры!")
-            return redirect('index')
+
         
         if game.players.count() >= 7:
             messages.error(request, "Комната переполнена!")
@@ -305,11 +290,8 @@ def create_rematch(request, old_room_code):
     if session_id != old_game.host_session:
         return redirect('index')
 
-    # Создаем новую пустую комнату
     new_game = GameSession.objects.create(host_session=session_id)
     
-    # ФИКС: Мы БОЛЬШЕ НЕ копируем игроков сервером.
-    # Вместо этого отправляем сигнал живым клиентам перейти по новой ссылке.
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         f'game_{old_room_code}',

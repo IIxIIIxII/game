@@ -243,7 +243,7 @@
         sessionStorage.setItem('rematch_previous_room', currentRoom);
     });
 
-    const avatarFiles = ['/static/myhehe.jpg', '/static/myhehe1.jpg', '/static/myhehe2.jpg', '/static/myhehe3.jpg', '/static/myhehe4.jpg', '/static/myhehe6.jpg'];
+    const avatarFiles = ['/static/myhehe.jpg', '/static/myhehe1.jpg', '/static/myhehe2.jpg', '/static/myhehe3.jpg', '/static/myhehe4.jpg', '/static/myhehe5.jpg'];
     const isHost = {{ is_host|yesno:"true,false" }};
 
     function openRules() { document.getElementById('rules-modal').style.display = 'flex'; }
@@ -302,7 +302,6 @@
         });
     }
 
-    // --- ФИКС: АВТО-СИНХРОНИЗАЦИЯ ПРИ ПОДКЛЮЧЕНИИ ---
     socket.onopen = () => {
         const savedNick = localStorage.getItem('crewfall_nickname');
         const savedAvatar = localStorage.getItem('crewfall_avatar');

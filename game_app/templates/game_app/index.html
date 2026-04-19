@@ -305,16 +305,14 @@
     </footer>
 
     <script>
-        /* --- АВТО-ОБХОД КАПЧИ ДЛЯ NGROK И LOCALHOST --- */
         const currentHost = window.location.hostname;
         if (currentHost.includes('ngrok') || currentHost === 'localhost' || currentHost === '127.0.0.1') {
             document.getElementById('site-guard-modal').style.display = 'none';
             document.querySelectorAll('.captcha-token-input').forEach(input => {
-                input.value = 'dev_bypass'; // Фейковый токен для сервера
+                input.value = 'dev_bypass';
             });
         }
 
-        /* --- ЛОГИКА КАПЧИ --- */
         function unlockSite(token) {
             document.getElementById('site-guard-modal').style.opacity = '0';
             setTimeout(() => { document.getElementById('site-guard-modal').style.display = 'none'; }, 500);
